@@ -1,11 +1,17 @@
 language: scala
-
 scala:
-  - 2.12.2
+  - 2.11.11
 
 jdk:
   - oraclejdk8
 
+cache:
+  directories:
+    - $HOME/.ivy2/cache
+    - $HOME/.sbt/boot/
+
 script:
-  ## This runs the template with the default parameters, and runs test within the templated app.
-  - sbt -Dfile.encoding=UTF8 -J-XX:ReservedCodeCacheSize=256M test
+    - sbt scalafmt::test
+    - sbt test:scalafmt::test
+    - sbt test
+    - sbt assembly
