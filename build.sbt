@@ -27,7 +27,7 @@ import sbtassembly.MergeStrategy
 
 assemblyMergeStrategy in assembly := {
   case PathList("org", "apache", "spark", "unused", "UnusedStubClass.class") => MergeStrategy.first
-  case PathList("META-INF", "MANIFEST.MF") => MergeStrategy.discard
+  case PathList("META-INF", _) => MergeStrategy.discard
   case _ => MergeStrategy.first
 }
 

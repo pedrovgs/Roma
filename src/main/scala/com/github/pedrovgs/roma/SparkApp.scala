@@ -9,12 +9,14 @@ import org.apache.spark.{SparkConf, SparkContext}
 
 private[roma] trait SparkApp extends App {
 
+  val appName: String
+
   private lazy val conf: SparkConf =
     new SparkConf().set("spark.serializer", "org.apache.spark.serializer.KryoSerializer")
 
   private lazy val sparkSession: SparkSession = SparkSession
     .builder()
-    .appName("Roma")
+    .appName(appName)
     .config(conf)
     .master(masterUrl())
     .getOrCreate()
