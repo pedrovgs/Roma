@@ -7,12 +7,13 @@ mainClass in assembly := Some("com.github.pedrovgs.roma.RomaApplication")
 enablePlugins(ScalafmtPlugin)
 CommandAliases.addCommandAliases()
 
-libraryDependencies ++=  Seq(
+libraryDependencies ++= Seq(
   "org.apache.spark" %% "spark-core" % Versions.spark % Provided,
   "org.apache.spark" %% "spark-streaming" % Versions.spark % Provided,
   "org.apache.spark" %% "spark-sql" % Versions.spark % Provided,
   "org.apache.spark" %% "spark-mllib" % Versions.spark % Provided,
-  "com.lihaoyi" %% "pprint" % Versions.pprint
+  "com.lihaoyi" %% "pprint" % Versions.pprint,
+  "org.apache.bahir" %% "spark-streaming-twitter" % Versions.sparkStreamingTwitter
 )
 
 libraryDependencies ++= Seq(
