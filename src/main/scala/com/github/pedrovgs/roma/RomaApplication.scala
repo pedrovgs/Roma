@@ -6,7 +6,6 @@ import twitter4j.Status
 
 import scala.io.Source
 
-
 object RomaApplication extends SparkApp {
 
   val appName: String = "Roma"
@@ -15,7 +14,7 @@ object RomaApplication extends SparkApp {
 
   private def loadCredentials(): Unit = {
     val lines: Iterator[String] = Source.fromFile("twitter4j.properties").getLines()
-    val props = lines.map(line => line.split("=")).map { case (scala.Array(k, v)) => (k, v) }
+    val props                   = lines.map(line => line.split("=")).map { case (scala.Array(k, v)) => (k, v) }
     props.foreach {
       case (k: String, v: String) => System.setProperty(k, v)
     }

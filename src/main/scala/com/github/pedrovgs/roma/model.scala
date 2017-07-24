@@ -3,7 +3,7 @@ package com.github.pedrovgs.roma
 import com.github.pedrovgs.roma.model.{Confidence, Content}
 
 object model {
-  type Content = String
+  type Content    = String
   type Confidence = Double
 }
 
@@ -12,4 +12,3 @@ case object Love
 case object Hate
 
 case class ClassifiedTweet(content: Content, sentiment: Sentiment, confidence: Confidence)
-
