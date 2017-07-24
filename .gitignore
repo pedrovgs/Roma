@@ -93,3 +93,6 @@ spark-warehouse/
 
 # Docker
 docker/data/*
+
+# Twitter4J
+twitter4j.properties

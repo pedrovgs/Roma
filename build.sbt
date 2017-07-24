@@ -23,3 +23,18 @@ libraryDependencies ++= Seq(
   "com.holdenkarau" %% "spark-testing-base" % Versions.sparkTestingBase % Test
 )
 
+import sbtassembly.MergeStrategy
+
+assemblyMergeStrategy in assembly := {
+  case PathList("org", "apache", "spark", "unused", "UnusedStubClass.class") => MergeStrategy.first
+  case PathList("META-INF", "MANIFEST.MF") => MergeStrategy.discard
+  case _ => MergeStrategy.first
+}
+
+
+test in assembly := {}
+fork in Test := true
+parallelExecution in Test := false
+javaOptions ++= Seq("-Xms512M", "-Xmx2048M", "-XX:MaxPermSize=2048M", "-XX:+CMSClassUnloadingEnabled")
+
+assemblyOption in assembly := (assemblyOption in assembly).value.copy(includeScala = false)
