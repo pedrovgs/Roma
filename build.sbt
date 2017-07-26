@@ -13,7 +13,9 @@ libraryDependencies ++= Seq(
   "org.apache.spark" %% "spark-sql" % Versions.spark % Provided,
   "org.apache.spark" %% "spark-mllib" % Versions.spark % Provided,
   "com.lihaoyi" %% "pprint" % Versions.pprint,
-  "org.apache.bahir" %% "spark-streaming-twitter" % Versions.sparkStreamingTwitter
+  "org.apache.bahir" %% "spark-streaming-twitter" % Versions.sparkStreamingTwitter,
+  "com.typesafe" % "config" % Versions.config
+
 )
 
 libraryDependencies ++= Seq(

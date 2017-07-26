@@ -1,27 +1,36 @@
 package com.github.pedrovgs.roma
 
+import com.github.pedrovgs.roma.config.{ConfigLoader, TwitterConfig}
 import org.apache.spark.rdd.RDD
 import org.apache.spark.streaming.twitter.TwitterUtils
 import twitter4j.Status
-
-import scala.io.Source
+import twitter4j.auth.{Authorization, OAuthAuthorization}
+import twitter4j.conf.ConfigurationBuilder
 
 object RomaApplication extends SparkApp {
 
   val appName: String = "Roma"
 
-  private val twitterStream = TwitterUtils.createFilteredStream(streamingContext, None)
+  private def twitterStream(authorization: Authorization) =
+    TwitterUtils.createFilteredStream(streamingContext, Some(authorization))
 
-  private def loadCredentials(): Unit = {
-    val lines: Iterator[String] = Source.fromFile("twitter4j.properties").getLines()
-    val props                   = lines.map(line => line.split("=")).map { case (scala.Array(k, v)) => (k, v) }
-    props.foreach {
-      case (k: String, v: String) => System.setProperty(k, v)
+  private def loadCredentials(): Option[TwitterConfig] = {
+    pprint.pprintln("Loading Twitter configuration")
+    ConfigLoader.loadTwitterConfig() match {
+      case Some(twitterConfig) => {
+        pprint.pprintln("Configuration loaded: " + twitterConfig)
+        Some(twitterConfig)
+      }
+      case None => {
+        pprint.pprintln("Configuration couldn't be loaded. Review your resources/application.conf file")
+        None
+      }
     }
   }
 
-  private def startStreaming() = {
-    twitterStream
+  private def startStreaming(authorization: Authorization) = {
+    pprint.pprintln("Let's start reading tweets!")
+    twitterStream(authorization)
       .filter(_.getLang == "en")
       .foreachRDD { rdd: RDD[Status] =>
         if (!rdd.isEmpty()) {
@@ -36,10 +45,20 @@ object RomaApplication extends SparkApp {
   }
 
   pprint.pprintln("Initializing...")
-  loadCredentials()
-  pprint.pprintln("Credentials initialized properly.")
-  pprint.pprintln("Let's start reading tweets!")
-  startStreaming()
-  pprint.pprintln("Application finished")
+  private val twitterCredentials = loadCredentials()
+  twitterCredentials match {
+    case Some(twitterConfig) => {
+      val configuration = new ConfigurationBuilder()
+        .setOAuthConsumerKey(twitterConfig.consumerKey)
+        .setOAuthConsumerSecret(twitterConfig.consumerSecret)
+        .setOAuthAccessToken(twitterConfig.accessToken)
+        .setOAuthAccessTokenSecret(twitterConfig.accessTokenSecret)
+        .build()
+      val authorization = new OAuthAuthorization(configuration)
+      startStreaming(authorization)
+      pprint.pprintln("Application finished")
+    }
+    case _ => pprint.pprintln("Finishing application")
+  }
 
 }
