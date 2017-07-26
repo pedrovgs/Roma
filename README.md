@@ -13,6 +13,24 @@ To build and test this project you can execute ``sbt test``. You can also use ``
 ~ test-only *AnySpec // Runs specs matching with the filter passed as param.
 ``` 
 
+## Configuration
+
+This project needs some private Twitter OAuth configuration you can set creating a new file named ``application.conf`` into the ``/src/main/resources/`` folder. Here you have an example:
+
+```
+twitter4j {
+  oauth {
+    consumerKey = YOUR_CONSUMER_KEY
+    consumerSecret = YOUR_CONSUMER_SECRET
+    accessToken = YOUR_ACCESS_TOKEN
+    accessTokenSecret = YOUR_ACCESS_TOKEN_SECRET
+  }
+}
+
+```
+
+You can get these credentials by creating a Twitter application [here](https://apps.twitter.com/).
+
 ## Running on a cluster
 
 Spark applications are developed to run on a cluster. Before to run your app you need to generate a ``.jar`` file you can submit to Spark to be executed. You can generate the ``roma.jar`` file executing ``sbt assembly``. This will generate a binary file you can submit using ``spark-submit`` command. Ensure your local Spark version is ``Spark 2.1.1``. 
