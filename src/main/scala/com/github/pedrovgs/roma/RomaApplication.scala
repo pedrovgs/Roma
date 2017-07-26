@@ -15,36 +15,36 @@ object RomaApplication extends SparkApp {
     TwitterUtils.createFilteredStream(streamingContext, Some(authorization))
 
   private def loadCredentials(): Option[TwitterConfig] = {
-    pprint.pprintln("Loading Twitter configuration")
+    logger.info("Loading Twitter configuration")
     ConfigLoader.loadTwitterConfig() match {
       case Some(twitterConfig) => {
-        pprint.pprintln("Configuration loaded: " + twitterConfig)
+        logger.info("Configuration loaded: " + twitterConfig)
         Some(twitterConfig)
       }
       case None => {
-        pprint.pprintln("Configuration couldn't be loaded. Review your resources/application.conf file")
+        logger.error("Configuration couldn't be loaded. Review your resources/application.conf file")
         None
       }
     }
   }
 
   private def startStreaming(authorization: Authorization) = {
-    pprint.pprintln("Let's start reading tweets!")
+    logger.info("Let's start reading tweets!")
     twitterStream(authorization)
       .filter(_.getLang == "en")
       .foreachRDD { rdd: RDD[Status] =>
         if (!rdd.isEmpty()) {
-          pprint.pprintln("Let's analyze a bunch of tweets!")
+          logger.info("Let's analyze a bunch of tweets!")
         }
         rdd.foreach { tweet =>
-          pprint.pprintln(tweet.getText)
+          logger.info(tweet.getText)
         }
       }
     streamingContext.start()
     streamingContext.awaitTermination()
   }
 
-  pprint.pprintln("Initializing...")
+  logger.info("Initializing...")
   private val twitterCredentials = loadCredentials()
   twitterCredentials match {
     case Some(twitterConfig) => {
@@ -56,9 +56,9 @@ object RomaApplication extends SparkApp {
         .build()
       val authorization = new OAuthAuthorization(configuration)
       startStreaming(authorization)
-      pprint.pprintln("Application finished")
+      logger.info("Application finished")
     }
-    case _ => pprint.pprintln("Finishing application")
+    case _ => logger.error("Finishing application")
   }
 
 }

@@ -3,6 +3,7 @@ package com.github.pedrovgs.roma
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.module.scala.DefaultScalaModule
 import com.fasterxml.jackson.module.scala.experimental.ScalaObjectMapper
+import org.apache.log4j.Logger
 import org.apache.spark.sql.{SQLContext, SparkSession}
 import org.apache.spark.streaming.{Seconds, StreamingContext}
 import org.apache.spark.{SparkConf, SparkContext}
@@ -10,6 +11,7 @@ import org.apache.spark.{SparkConf, SparkContext}
 private[roma] trait SparkApp extends App {
 
   val appName: String
+  val logger: Logger = Logger.getLogger(appName)
 
   private lazy val conf: SparkConf =
     new SparkConf().set("spark.serializer", "org.apache.spark.serializer.KryoSerializer")
