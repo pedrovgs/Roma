@@ -21,10 +21,7 @@ object ConfigLoader {
         config.getString(consumerSecretConfigKey),
         config.getString(accessTokenConfigKey),
         config.getString(accessTokenSecretConfigKey)
-      )) match {
-      case Success(twitterConfig) => Some(twitterConfig)
-      case _                      => None
-    }
+      )).toOption
   }
 
 }
