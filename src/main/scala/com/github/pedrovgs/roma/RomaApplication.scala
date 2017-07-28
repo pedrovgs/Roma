@@ -1,6 +1,6 @@
 package com.github.pedrovgs.roma
 
-import com.github.pedrovgs.roma.config.{ConfigLoader, TwitterConfig}
+import com.github.pedrovgs.roma.config.{ConfigLoader, FirebaseConfig, TwitterConfig}
 import org.apache.spark.rdd.RDD
 import org.apache.spark.streaming.twitter.TwitterUtils
 import twitter4j.Status
@@ -14,15 +14,29 @@ object RomaApplication extends SparkApp {
   private def twitterStream(authorization: Authorization) =
     TwitterUtils.createFilteredStream(streamingContext, Some(authorization))
 
-  private def loadCredentials(): Option[TwitterConfig] = {
+  def loadFirebaseCredentials(): Option[FirebaseConfig] = {
+    logger.info("Loading Firebase configuration")
+    ConfigLoader.loadFirebaseConfig() match {
+      case Some(firebaseConfig) => {
+        logger.info("Firebase configuration loaded: " + firebaseCredentials)
+        Some(firebaseConfig)
+      }
+      case None => {
+        logger.error("Firebase configuration couldn't be loaded. Review your resources/application.conf file")
+        None
+      }
+    }
+  }
+
+  private def loadTwitterCredentials(): Option[TwitterConfig] = {
     logger.info("Loading Twitter configuration")
     ConfigLoader.loadTwitterConfig() match {
       case Some(twitterConfig) => {
-        logger.info("Configuration loaded: " + twitterConfig)
+        logger.info("Twitter configuration loaded: " + twitterConfig)
         Some(twitterConfig)
       }
       case None => {
-        logger.error("Configuration couldn't be loaded. Review your resources/application.conf file")
+        logger.error("Twitter configuration couldn't be loaded. Review your resources/application.conf file")
         None
       }
     }
@@ -45,9 +59,10 @@ object RomaApplication extends SparkApp {
   }
 
   logger.info("Initializing...")
-  private val twitterCredentials = loadCredentials()
-  twitterCredentials match {
-    case Some(twitterConfig) => {
+  private val twitterCredentials = loadTwitterCredentials()
+  private val firebaseCredentials = loadFirebaseCredentials()
+  (firebaseCredentials, twitterCredentials) match {
+    case (Some(_), Some(twitterConfig)) => {
       val configuration = new ConfigurationBuilder()
         .setOAuthConsumerKey(twitterConfig.consumerKey)
         .setOAuthConsumerSecret(twitterConfig.consumerSecret)

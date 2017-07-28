@@ -2,26 +2,28 @@ package com.github.pedrovgs.roma.config
 
 import com.typesafe.config.ConfigFactory
 
-import scala.util.{Success, Try}
+import scala.util.Try
 
 case class TwitterConfig(consumerKey: String, consumerSecret: String, accessToken: String, accessTokenSecret: String)
 
-object ConfigLoader {
+case class FirebaseConfig(databaseUrl: String)
 
-  private val consumerKeyConfigKey       = "twitter4j.oauth.consumerKey"
-  private val consumerSecretConfigKey    = "twitter4j.oauth.consumerSecret"
-  private val accessTokenConfigKey       = "twitter4j.oauth.accessToken"
-  private val accessTokenSecretConfigKey = "twitter4j.oauth.accessTokenSecret"
+object ConfigLoader {
 
   def loadTwitterConfig(): Option[TwitterConfig] = {
     val config = ConfigFactory.load
     Try(
       TwitterConfig(
-        config.getString(consumerKeyConfigKey),
-        config.getString(consumerSecretConfigKey),
-        config.getString(accessTokenConfigKey),
-        config.getString(accessTokenSecretConfigKey)
+        config.getString("twitter4j.oauth.consumerKey"),
+        config.getString("twitter4j.oauth.consumerSecret"),
+        config.getString("twitter4j.oauth.accessToken"),
+        config.getString("twitter4j.oauth.accessTokenSecret")
       )).toOption
+  }
+
+  def loadFirebaseConfig(): Option[FirebaseConfig] = {
+    val config = ConfigFactory.load
+    Try(FirebaseConfig(config.getString("firebase.databaseUrl"))).toOption
   }
 
 }
