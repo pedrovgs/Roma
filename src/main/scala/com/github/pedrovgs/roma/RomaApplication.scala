@@ -7,6 +7,8 @@ import org.apache.spark.streaming.twitter.TwitterUtils
 import twitter4j.Status
 import twitter4j.auth.{Authorization, OAuthAuthorization}
 import twitter4j.conf.ConfigurationBuilder
+import scala.concurrent.ExecutionContext.Implicits.global
+import scala.util.{Failure, Success}
 
 object RomaApplication extends SparkApp {
 
@@ -49,10 +51,15 @@ object RomaApplication extends SparkApp {
         if (!rdd.isEmpty()) {
           pprint.pprintln("Let's analyze a bunch of tweets!")
           val classifiedTweets: RDD[ClassifiedTweet] = rdd.map { status =>
-            new ClassifiedTweet(status.getText, Love, 0.99)
+            ClassifiedTweet(status.getText, true, 0.99)
           }
           storage.value.saveTweets(classifiedTweets.collect)
-          classifiedTweets.foreach(pprint.pprintln(_))
+            .onComplete {
+              case Success(tweets) =>
+                pprint.pprintln("Tweets saved properly!")
+                tweets.foreach(pprint.pprintln(_))
+              case Failure(_) => pprint.pprintln("Error saving tweets :_(")
+            }
         }
       }
     streamingContext.start()

@@ -4,7 +4,7 @@ import com.github.pedrovgs.roma.FirebaseError
 import com.github.pedrovgs.roma.config.ConfigLoader
 import com.google.firebase.database.{DatabaseError, DatabaseReference, FirebaseDatabase}
 import com.google.firebase.{FirebaseApp, FirebaseOptions}
-
+import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.{Future, Promise}
 
 class Firebase {
@@ -19,18 +19,22 @@ class Firebase {
       .build()
   }
 
-  def save[T](path: String, value: T): Future[T] = {
-    val promise = Promise[T]
-    ref(path).setValue(value, new DatabaseReference.CompletionListener {
-      override def onComplete(databaseError: DatabaseError, databaseReference: DatabaseReference): Unit = {
-        if (databaseError == null) {
-          promise.trySuccess(value)
-        } else {
-          promise.failure(new FirebaseError)
+  def save[T](path: String, values: Seq[T]): Future[Seq[T]] = {
+    val futures = values.map { value =>
+      val promise = Promise[T]
+      val tweetsReference = ref(path)
+      tweetsReference.push().setValue(value, new DatabaseReference.CompletionListener {
+        override def onComplete(databaseError: DatabaseError, databaseReference: DatabaseReference): Unit = {
+          if (databaseError == null) {
+            promise.trySuccess(value)
+          } else {
+            promise.failure(new FirebaseError)
+          }
         }
-      }
-    })
-    promise.future
+      })
+      promise.future
+    }
+    Future.sequence(futures)
   }
 
   FirebaseApp.initializeApp(options)
