@@ -53,7 +53,8 @@ object RomaApplication extends SparkApp {
           val classifiedTweets: RDD[ClassifiedTweet] = rdd.map { status =>
             ClassifiedTweet(status.getText, true, 0.99)
           }
-          storage.value.saveTweets(classifiedTweets.collect)
+          storage.value
+            .saveTweets(classifiedTweets.collect)
             .onComplete {
               case Success(tweets) =>
                 pprint.pprintln("Tweets saved properly!")
@@ -67,7 +68,7 @@ object RomaApplication extends SparkApp {
   }
 
   pprint.pprintln("Initializing...")
-  private val twitterCredentials = loadTwitterCredentials()
+  private val twitterCredentials  = loadTwitterCredentials()
   private val firebaseCredentials = loadFirebaseCredentials()
   (firebaseCredentials, twitterCredentials) match {
     case (Some(_), Some(twitterConfig)) => {
