@@ -15,7 +15,7 @@ then
     spark-submit \
       --class com.github.pedrovgs.roma.RomaApplication \
       --deploy-mode client \
-      target/scala-2.11/roma.jar \
+      target/scala-2.11/roma.jar
 else
     echo "Review your Apache Spark installation. We can't find 'spark-submit' binary file."
 fi

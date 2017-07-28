@@ -6,5 +6,6 @@ object Versions {
   val scalaTest = "3.0.3"
   val scalaMock = "3.5.0"
   val scalaCheck = "1.13.4"
-
+  val sparkStreamingTwitter = "2.1.1"
+  val config = "1.3.1"
 }

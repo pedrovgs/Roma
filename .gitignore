@@ -93,3 +93,6 @@ spark-warehouse/
 
 # Docker
 docker/data/*
+
+# Config
+src/main/resources/application.conf
