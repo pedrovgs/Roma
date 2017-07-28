@@ -1,6 +1,7 @@
 package com.github.pedrovgs.roma
 
 import com.github.pedrovgs.roma.config.{ConfigLoader, FirebaseConfig, TwitterConfig}
+import com.github.pedrovgs.roma.storage.{Firebase, TweetsStorage}
 import org.apache.spark.rdd.RDD
 import org.apache.spark.streaming.twitter.TwitterUtils
 import twitter4j.Status
@@ -11,54 +12,54 @@ object RomaApplication extends SparkApp {
 
   val appName: String = "Roma"
 
+  private lazy val storage = sparkContext.broadcast(new TweetsStorage(new Firebase))
+
   private def twitterStream(authorization: Authorization) =
     TwitterUtils.createFilteredStream(streamingContext, Some(authorization))
 
   def loadFirebaseCredentials(): Option[FirebaseConfig] = {
-    logger.info("Loading Firebase configuration")
+    pprint.pprintln("Loading Firebase configuration")
     ConfigLoader.loadFirebaseConfig() match {
-      case Some(firebaseConfig) => {
-        logger.info("Firebase configuration loaded: " + firebaseCredentials)
+      case Some(firebaseConfig) =>
+        pprint.pprintln("Firebase configuration loaded: " + firebaseConfig)
         Some(firebaseConfig)
-      }
-      case None => {
-        logger.error("Firebase configuration couldn't be loaded. Review your resources/application.conf file")
+      case None =>
+        pprint.pprintln("Firebase configuration couldn't be loaded. Review your resources/application.conf file")
         None
-      }
     }
   }
 
   private def loadTwitterCredentials(): Option[TwitterConfig] = {
-    logger.info("Loading Twitter configuration")
+    pprint.pprintln("Loading Twitter configuration")
     ConfigLoader.loadTwitterConfig() match {
-      case Some(twitterConfig) => {
-        logger.info("Twitter configuration loaded: " + twitterConfig)
+      case Some(twitterConfig) =>
+        pprint.pprintln("Twitter configuration loaded: " + twitterConfig)
         Some(twitterConfig)
-      }
-      case None => {
-        logger.error("Twitter configuration couldn't be loaded. Review your resources/application.conf file")
+      case None =>
+        pprint.pprintln("Twitter configuration couldn't be loaded. Review your resources/application.conf file")
         None
-      }
     }
   }
 
   private def startStreaming(authorization: Authorization) = {
-    logger.info("Let's start reading tweets!")
+    pprint.pprintln("Let's start reading tweets!")
     twitterStream(authorization)
       .filter(_.getLang == "en")
       .foreachRDD { rdd: RDD[Status] =>
         if (!rdd.isEmpty()) {
-          logger.info("Let's analyze a bunch of tweets!")
-        }
-        rdd.foreach { tweet =>
-          logger.info(tweet.getText)
+          pprint.pprintln("Let's analyze a bunch of tweets!")
+          val classifiedTweets: RDD[ClassifiedTweet] = rdd.map { status =>
+            new ClassifiedTweet(status.getText, Love, 0.99)
+          }
+          storage.value.saveTweets(classifiedTweets.collect)
+          classifiedTweets.foreach(pprint.pprintln(_))
         }
       }
     streamingContext.start()
     streamingContext.awaitTermination()
   }
 
-  logger.info("Initializing...")
+  pprint.pprintln("Initializing...")
   private val twitterCredentials = loadTwitterCredentials()
   private val firebaseCredentials = loadFirebaseCredentials()
   (firebaseCredentials, twitterCredentials) match {
@@ -71,9 +72,9 @@ object RomaApplication extends SparkApp {
         .build()
       val authorization = new OAuthAuthorization(configuration)
       startStreaming(authorization)
-      logger.info("Application finished")
+      pprint.pprintln("Application finished")
     }
-    case _ => logger.error("Finishing application")
+    case _ => pprint.pprintln("Finishing application")
   }
 
 }

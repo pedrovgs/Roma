@@ -10,20 +10,23 @@ case class FirebaseConfig(databaseUrl: String)
 
 object ConfigLoader {
 
+  private val config = ConfigFactory.load
+
   def loadTwitterConfig(): Option[TwitterConfig] = {
-    val config = ConfigFactory.load
     Try(
       TwitterConfig(
-        config.getString("twitter4j.oauth.consumerKey"),
-        config.getString("twitter4j.oauth.consumerSecret"),
-        config.getString("twitter4j.oauth.accessToken"),
-        config.getString("twitter4j.oauth.accessTokenSecret")
+        config.getString("roma.twitter4j.oauth.consumerKey"),
+        config.getString("roma.twitter4j.oauth.consumerSecret"),
+        config.getString("roma.twitter4j.oauth.accessToken"),
+        config.getString("roma.twitter4j.oauth.accessTokenSecret")
       )).toOption
   }
 
   def loadFirebaseConfig(): Option[FirebaseConfig] = {
-    val config = ConfigFactory.load
-    Try(FirebaseConfig(config.getString("firebase.databaseUrl"))).toOption
+    Try {
+      val databaseUrl = config.getString("roma.firebase.databaseUrl")
+      FirebaseConfig(databaseUrl)
+    }.toOption
   }
 
 }
