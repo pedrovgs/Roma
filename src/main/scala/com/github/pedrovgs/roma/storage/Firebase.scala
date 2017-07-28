@@ -1,10 +1,13 @@
 package com.github.pedrovgs.roma.storage
 
+import com.github.pedrovgs.roma.FirebaseError
 import com.github.pedrovgs.roma.config.ConfigLoader
-import com.google.firebase.database.{DatabaseReference, FirebaseDatabase}
+import com.google.firebase.database.{DatabaseError, DatabaseReference, FirebaseDatabase}
 import com.google.firebase.{FirebaseApp, FirebaseOptions}
 
-private[this] object Firebase {
+import scala.concurrent.{Future, Promise}
+
+class Firebase {
 
   private val credentials = getClass.getResourceAsStream("/firebaseCredentials.json")
   private val options = {
@@ -16,8 +19,22 @@ private[this] object Firebase {
       .build()
   }
 
+  def save[T](path: String, value: T): Future[T] = {
+    val promise = Promise[T]
+    ref(path).setValue(value, new DatabaseReference.CompletionListener {
+      override def onComplete(databaseError: DatabaseError, databaseReference: DatabaseReference): Unit = {
+        if (databaseError == null) {
+          promise.trySuccess(value)
+        } else {
+          promise.failure(new FirebaseError)
+        }
+      }
+    })
+    promise.future
+  }
+
   FirebaseApp.initializeApp(options)
   private val database = FirebaseDatabase.getInstance()
 
-  def ref(path: String): DatabaseReference = database.getReference(path)
+  private def ref(path: String): DatabaseReference = database.getReference(path)
 }

@@ -12,3 +12,5 @@ case object Love
 case object Hate
 
 case class ClassifiedTweet(content: Content, sentiment: Sentiment, confidence: Confidence)
+
+class FirebaseError extends Throwable
