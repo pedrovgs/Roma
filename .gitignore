@@ -96,3 +96,4 @@ docker/data/*
 
 # Config
 src/main/resources/application.conf
+src/main/resources/firebaseCredentials.json

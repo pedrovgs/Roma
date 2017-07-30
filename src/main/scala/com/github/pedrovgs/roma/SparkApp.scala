@@ -11,7 +11,6 @@ import org.apache.spark.{SparkConf, SparkContext}
 private[roma] trait SparkApp extends App {
 
   val appName: String
-  val logger: Logger = Logger.getLogger(appName)
 
   private lazy val conf: SparkConf =
     new SparkConf().set("spark.serializer", "org.apache.spark.serializer.KryoSerializer")

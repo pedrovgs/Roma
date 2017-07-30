@@ -27,9 +27,15 @@ twitter4j {
   }
 }
 
+firebase {
+  databaseUrl = YOUR_FIREBASE_DATABASE_URL
+}
+
 ```
 
-You can get these credentials by creating a Twitter application [here](https://apps.twitter.com/).
+You'll need to also add a new file named ``firebaseCredentials.json`` into the ``/src/main/resources/`` folder. You can get this file from your [Firebase console](https://console.firebase.google.com).
+
+You can get these credentials by creating a Twitter application [here](https://apps.twitter.com/) and a new Firebase application [here](https://console.firebase.google.com).
 
 ## Running on a cluster
 
