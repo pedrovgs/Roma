@@ -47,7 +47,8 @@ object RomaMachineLearningTrainer extends SparkApp with Resources {
   pprint.pprintln("Time to use our model!")
   predict(svmModel,
           sparkContext.parallelize(
-            Seq("I'm so happy today! It's my birthday!", "Sad to see a new flight delayed again :_(")))
+            Seq("I'm happy to announce I've found a new excelent job!",
+              "I don't understand why airlines are so incompetent")))
 
   private def readAndFilterTweets(resourceName: String): DataFrame = {
     pprint.pprintln("Reading tweets from: " + resourceName)
@@ -125,9 +126,11 @@ object RomaMachineLearningTrainer extends SparkApp with Resources {
     val predictionResult: RDD[(String, Double)] = originalTweets.zip(prediction)
     pprint.pprintln(
       "The following table shows the result of a tweet prediction based on a Support Vector Machine algorithm and using tweets as input data:")
+    pprint.pprintln("Class 0 : Happy tweet")
+    pprint.pprintln("Class 1 : Angry tweet")
     pprint.pprintln(
       predictionResult
-        .map(tuple => "Tweet: " + tuple._1 + " - Probability: " + tuple._2)
+        .map(tuple => "Tweet: " + tuple._1 + " - Class: " + tuple._2)
         .collect())
 
   }
