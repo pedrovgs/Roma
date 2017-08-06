@@ -21,18 +21,30 @@ object RomaMachineLearningTrainer extends SparkApp with Resources {
   private val featuresColumnName      = "features"
   private val labelColumnName         = "label"
 
+  pprint.pprintln("Let's read some tweets for our trainig process")
+
   private val trainingTweets: DataFrame = readAndFilterTweets("/training.csv").cache()
-  private val testTweets                = readAndFilterTweets("/test.csv").cache()
+  private val testTweets: DataFrame     = readAndFilterTweets("/test.csv").cache()
+
+  pprint.pprintln("Here we have some training tweets already prepared to extract features")
+  trainingTweets.show()
+  pprint.pprintln("Here we have some test tweets already prepared to extract features")
+  testTweets.show()
+
+  pprint.pprintln("Let's extract features from the Tweets content")
   private val word2VectorModel = new Word2Vec()
     .setInputCol(tweetWordsColumnName)
     .setOutputCol(featuresColumnName)
     .fit(trainingTweets)
   private val featuredTrainingTweets = tokenizeTweets(trainingTweets, word2VectorModel).cache()
-  private val featuredTestTweets     = tokenizeTweets(trainingTweets, word2VectorModel).cache()
+  private val featuredTestTweets     = tokenizeTweets(testTweets, word2VectorModel).cache()
 
+  pprint.pprintln("Ready to start training our Support Vector Machine model!")
   private val svmModel     = trainSvmModel(featuredTrainingTweets, numberOfIterations)
-  private val modelMetrics = measureSvmModelTraining(featuredTestTweets, svmModel)
+  pprint.pprintln("Model ready! Let's measure our area under PR & ROC")
+  measureSvmModelTraining(featuredTestTweets, svmModel)
 
+  pprint.pprintln("Time to use our model!")
   predict(svmModel,
           sparkContext.parallelize(
             Seq("I'm so happy today! It's my birthday!", "Sad to see a new flight delayed again :_(")))
@@ -54,11 +66,16 @@ object RomaMachineLearningTrainer extends SparkApp with Resources {
         } else {
           0.0
         }
-        val content = row.getAs[String]("content").toLowerCase.split(" ")
-        (label, content)
+        val tweetWords: Array[String] = extractTweetWords(row.getAs[String]("content"))
+        (label, tweetWords)
       }
       .toDF(labelColumnName, tweetWordsColumnName)
   }
+
+  private def extractTweetWords(tweet: String): Array[String] = tweet.toLowerCase.split(" ")
+    .map(_.replaceAll("""([\p{Punct}&&[^.]]|\b\p{IsLetter}{1,2}\b)\s*""", ""))
+    .filterNot(_.startsWith("@"))
+    .filterNot(_.isEmpty)
 
   private def tokenizeTweets(tweets: DataFrame, word2VectorModel: Word2VecModel): RDD[LabeledPoint] = {
     pprint.pprintln("Tokenizing " + tweets.count() + " tweets into labeled points.")
@@ -66,7 +83,7 @@ object RomaMachineLearningTrainer extends SparkApp with Resources {
     val featuredTweets  = MLUtils.convertVectorColumnsFromML(tokenizedTweets, featuresColumnName)
     featuredTweets.rdd.map { row =>
       val label    = row.getAs[Double](labelColumnName)
-      val features = row.getAs[DenseVector](featuresColumnName)
+      val features = row.getAs[Vector](featuresColumnName)
       new LabeledPoint(label, features)
     }
   }
@@ -75,7 +92,7 @@ object RomaMachineLearningTrainer extends SparkApp with Resources {
     pprint.pprintln(
       "Training SVM model with " + numberOfIterations + " number of iterations and " + labeledPoints
         .count() + " training tweets.")
-    SVMWithSGD.train(labeledPoints, numberOfIterations).clearThreshold()
+    SVMWithSGD.train(labeledPoints, numberOfIterations)
   }
 
   private def measureSvmModelTraining(testData: RDD[LabeledPoint], svmModel: SVMModel) = {
@@ -85,26 +102,25 @@ object RomaMachineLearningTrainer extends SparkApp with Resources {
         (score, point.label)
       }
     val metrics = new BinaryClassificationMetrics(scoreAndLabels)
-    pprint.pprintln("Model training completed. These are the result:")
+    pprint.pprintln("Binary classification metrics:")
     pprint.pprintln("Area under PR: " + metrics.areaUnderPR())
     pprint.pprintln("Area under ROC: " + metrics.areaUnderROC())
     metrics
   }
 
-  def predict(svmModel: SVMModel, originalTweets: RDD[String]) = {
-    pprint.pprintln("Let's analyze some tweets using Support Vector Machine!")
+  private def predict(svmModel: SVMModel, originalTweets: RDD[String]) = {
     pprint.pprintln("List of original tweets:")
     originalTweets.foreach(pprint.pprintln(_))
     val tweetsToAnalyze = originalTweets
-      .map(_.split(" "))
+      .map(extractTweetWords)
       .toDF(tweetWordsColumnName)
     val tokenizedTweets = word2VectorModel.transform(tweetsToAnalyze)
-    val convertedEarthquakeTweetsResult =
+    val convertedTweetsResult =
       MLUtils.convertVectorColumnsFromML(tokenizedTweets, featuresColumnName)
-    val earthquakeTweetsData: RDD[Vector] =
-      convertedEarthquakeTweetsResult.rdd.map(_.getAs[DenseVector](featuresColumnName))
+    val tweetsweetsData: RDD[Vector] =
+      convertedTweetsResult.rdd.map(_.getAs[Vector](featuresColumnName))
 
-    val prediction = svmModel.predict(earthquakeTweetsData)
+    val prediction = svmModel.predict(tweetsweetsData)
 
     val predictionResult: RDD[(String, Double)] = originalTweets.zip(prediction)
     pprint.pprintln(
