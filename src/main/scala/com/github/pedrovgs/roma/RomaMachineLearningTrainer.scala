@@ -3,7 +3,7 @@ package com.github.pedrovgs.roma
 import org.apache.spark.ml.feature.{Word2Vec, Word2VecModel}
 import org.apache.spark.mllib.classification.{SVMModel, SVMWithSGD}
 import org.apache.spark.mllib.evaluation.BinaryClassificationMetrics
-import org.apache.spark.mllib.linalg.{DenseVector, Vector}
+import org.apache.spark.mllib.linalg.Vector
 import org.apache.spark.mllib.regression.LabeledPoint
 import org.apache.spark.mllib.util.MLUtils
 import org.apache.spark.rdd.RDD
@@ -36,8 +36,8 @@ object RomaMachineLearningTrainer extends SparkApp with Resources {
     .setInputCol(tweetWordsColumnName)
     .setOutputCol(featuresColumnName)
     .fit(trainingTweets)
-  private val featuredTrainingTweets = tokenizeTweets(trainingTweets, word2VectorModel).cache()
-  private val featuredTestTweets     = tokenizeTweets(testTweets, word2VectorModel).cache()
+  private val featuredTrainingTweets = featurizeTweets(trainingTweets, word2VectorModel).cache()
+  private val featuredTestTweets     = featurizeTweets(testTweets, word2VectorModel).cache()
 
   pprint.pprintln("Ready to start training our Support Vector Machine model!")
   private val svmModel     = trainSvmModel(featuredTrainingTweets, numberOfIterations)
@@ -61,7 +61,13 @@ object RomaMachineLearningTrainer extends SparkApp with Resources {
         sentiment == 0 || sentiment == 4
       }
       .rdd
+      .filter { row =>
+        val sentiment = row.getAs[Int](sentimentColumnName)
+        sentiment == 4 || sentiment == 0
+      }
       .map { row =>
+        //Sentiment 4 in the CSV is a positive sentiment
+        //Sentiment 0 in the CSV is a NEGATIVE sentiment
         val label = if (row.getAs[Int](sentimentColumnName).equals(4)) {
           1.0
         } else {
@@ -78,8 +84,8 @@ object RomaMachineLearningTrainer extends SparkApp with Resources {
     .filterNot(_.startsWith("@"))
     .filterNot(_.isEmpty)
 
-  private def tokenizeTweets(tweets: DataFrame, word2VectorModel: Word2VecModel): RDD[LabeledPoint] = {
-    pprint.pprintln("Tokenizing " + tweets.count() + " tweets into labeled points.")
+  private def featurizeTweets(tweets: DataFrame, word2VectorModel: Word2VecModel): RDD[LabeledPoint] = {
+    pprint.pprintln("Featuring " + tweets.count() + " tweets into labeled points.")
     val tokenizedTweets = word2VectorModel.transform(tweets)
     val featuredTweets  = MLUtils.convertVectorColumnsFromML(tokenizedTweets, featuresColumnName)
     featuredTweets.rdd.map { row =>
@@ -115,19 +121,19 @@ object RomaMachineLearningTrainer extends SparkApp with Resources {
     val tweetsToAnalyze = originalTweets
       .map(extractTweetWords)
       .toDF(tweetWordsColumnName)
-    val tokenizedTweets = word2VectorModel.transform(tweetsToAnalyze)
+    val featurizedTweets = word2VectorModel.transform(tweetsToAnalyze)
     val convertedTweetsResult =
-      MLUtils.convertVectorColumnsFromML(tokenizedTweets, featuresColumnName)
-    val tweetsweetsData: RDD[Vector] =
+      MLUtils.convertVectorColumnsFromML(featurizedTweets, featuresColumnName)
+    val tweetsData: RDD[Vector] =
       convertedTweetsResult.rdd.map(_.getAs[Vector](featuresColumnName))
 
-    val prediction = svmModel.predict(tweetsweetsData)
+    val prediction = svmModel.predict(tweetsData)
 
     val predictionResult: RDD[(String, Double)] = originalTweets.zip(prediction)
     pprint.pprintln(
       "The following table shows the result of a tweet prediction based on a Support Vector Machine algorithm and using tweets as input data:")
-    pprint.pprintln("Class 0 : Happy tweet")
-    pprint.pprintln("Class 1 : Angry tweet")
+    pprint.pprintln("Class 0 : Angry tweet")
+    pprint.pprintln("Class 1 : Happy tweet")
     pprint.pprintln(
       predictionResult
         .map(tuple => "Tweet: " + tuple._1 + " - Class: " + tuple._2)
