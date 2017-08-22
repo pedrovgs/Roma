@@ -15,17 +15,18 @@ object RomaMachineLearningTrainer extends SparkApp with Resources {
 
   import sqlContext.implicits._
 
-  private val numberOfIterations: Int     = 100
+  private val numberOfIterations: Int = 100
   private val curatedTweetWordsColumnName = "tweetWords"
-  private val tweetWordsColumnName        = "words"
-  private val sentimentColumnName         = "sentiment"
-  private val featuresColumnName          = "features"
-  private val labelColumnName             = "label"
+  private val tweetWordsColumnName = "words"
+  private val sentimentColumnName = "sentiment"
+  private val rawFeaturesColumnName = "rawFeatures"
+  private val featuresColumnName = "features"
+  private val labelColumnName = "label"
 
   pprint.pprintln("Let's read some tweets for our trainig process")
 
   private val trainingTweets: DataFrame = readAndFilterTweets("/training.csv").cache()
-  private val testTweets: DataFrame     = readAndFilterTweets("/test.csv").cache()
+  private val testTweets: DataFrame = readAndFilterTweets("/test.csv").cache()
 
   pprint.pprintln("Here we have some training tweets already prepared to extract features")
   trainingTweets.show()
@@ -33,17 +34,16 @@ object RomaMachineLearningTrainer extends SparkApp with Resources {
   testTweets.show()
 
   pprint.pprintln("Let's extract features from the Tweets content")
-  private val word2VectorModel = new Word2Vec()
-    .setInputCol(curatedTweetWordsColumnName)
-    .setOutputCol(featuresColumnName)
-    .fit(trainingTweets)
 
-  private val cvModel: CountVectorizerModel = new CountVectorizer()
+  private val featurizedData = new HashingTF()
     .setInputCol(curatedTweetWordsColumnName)
-    .setOutputCol(featuresColumnName)
-    .fit(trainingTweets)
-  private val featuredTrainingTweets = featurizeTweets(trainingTweets, word2VectorModel).cache()
-  private val featuredTestTweets     = featurizeTweets(testTweets, word2VectorModel).cache()
+    .setOutputCol(rawFeaturesColumnName)
+    .transform(trainingTweets)
+
+  private val idfModel = new IDF().setInputCol(rawFeaturesColumnName).setOutputCol(featuresColumnName).fit(featurizedData)
+
+  private val featuredTrainingTweets = featurizeTweets(trainingTweets).cache()
+  private val featuredTestTweets = featurizeTweets(testTweets).cache()
 
   pprint.pprintln("Ready to start training our Support Vector Machine model!")
   private val svmModel = trainSvmModel(featuredTrainingTweets, numberOfIterations)
@@ -104,13 +104,12 @@ object RomaMachineLearningTrainer extends SparkApp with Resources {
       .map(_.replaceAll("\\p{P}(?=\\s|$)", ""))
       .filterNot(_.isEmpty)
 
-  private def featurizeTweets(tweets: DataFrame, word2VectorModel: Word2VecModel): RDD[LabeledPoint] = {
+  private def featurizeTweets(tweets: DataFrame): RDD[LabeledPoint] = {
     pprint.pprintln("Featuring " + tweets.count() + " tweets into labeled points.")
-
-    val tokenizedTweets = cvModel.transform(tweets)
-    val featuredTweets  = MLUtils.convertVectorColumnsFromML(tokenizedTweets, featuresColumnName)
+    val tokenizedTweets = idfModel.transform(featurizedData)
+    val featuredTweets = MLUtils.convertVectorColumnsFromML(tokenizedTweets, featuresColumnName)
     featuredTweets.rdd.map { row =>
-      val label    = row.getAs[Double](labelColumnName)
+      val label = row.getAs[Double](labelColumnName)
       val features = row.getAs[Vector](featuresColumnName)
       new LabeledPoint(label, features)
     }
@@ -145,7 +144,11 @@ object RomaMachineLearningTrainer extends SparkApp with Resources {
       .toDF(tweetWordsColumnName)
     val tweetsToAnalyze =
       stopWordsRemover.setInputCol(tweetWordsColumnName).setOutputCol(curatedTweetWordsColumnName).transform(tweets)
-    val featurizedTweets = cvModel.transform(tweetsToAnalyze)
+    val featurizedData = new HashingTF()
+      .setInputCol(curatedTweetWordsColumnName)
+      .setOutputCol(rawFeaturesColumnName)
+      .transform(tweetsToAnalyze)
+    val featurizedTweets = idfModel.transform(featurizedData)
     val convertedTweetsResult =
       MLUtils.convertVectorColumnsFromML(featurizedTweets, featuresColumnName)
     val tweetsData: RDD[Vector] =
