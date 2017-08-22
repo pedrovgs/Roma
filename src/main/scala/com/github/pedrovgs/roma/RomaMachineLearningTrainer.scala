@@ -1,6 +1,6 @@
 package com.github.pedrovgs.roma
 
-import org.apache.spark.ml.feature.{StopWordsRemover, Word2Vec, Word2VecModel}
+import org.apache.spark.ml.feature._
 import org.apache.spark.mllib.classification.{SVMModel, SVMWithSGD}
 import org.apache.spark.mllib.evaluation.BinaryClassificationMetrics
 import org.apache.spark.mllib.linalg.Vector
@@ -34,6 +34,11 @@ object RomaMachineLearningTrainer extends SparkApp with Resources {
 
   pprint.pprintln("Let's extract features from the Tweets content")
   private val word2VectorModel = new Word2Vec()
+    .setInputCol(curatedTweetWordsColumnName)
+    .setOutputCol(featuresColumnName)
+    .fit(trainingTweets)
+
+  private val cvModel: CountVectorizerModel = new CountVectorizer()
     .setInputCol(curatedTweetWordsColumnName)
     .setOutputCol(featuresColumnName)
     .fit(trainingTweets)
@@ -101,7 +106,8 @@ object RomaMachineLearningTrainer extends SparkApp with Resources {
 
   private def featurizeTweets(tweets: DataFrame, word2VectorModel: Word2VecModel): RDD[LabeledPoint] = {
     pprint.pprintln("Featuring " + tweets.count() + " tweets into labeled points.")
-    val tokenizedTweets = word2VectorModel.transform(tweets)
+
+    val tokenizedTweets = cvModel.transform(tweets)
     val featuredTweets  = MLUtils.convertVectorColumnsFromML(tokenizedTweets, featuresColumnName)
     featuredTweets.rdd.map { row =>
       val label    = row.getAs[Double](labelColumnName)
@@ -139,7 +145,7 @@ object RomaMachineLearningTrainer extends SparkApp with Resources {
       .toDF(tweetWordsColumnName)
     val tweetsToAnalyze =
       stopWordsRemover.setInputCol(tweetWordsColumnName).setOutputCol(curatedTweetWordsColumnName).transform(tweets)
-    val featurizedTweets = word2VectorModel.transform(tweetsToAnalyze)
+    val featurizedTweets = cvModel.transform(tweetsToAnalyze)
     val convertedTweetsResult =
       MLUtils.convertVectorColumnsFromML(featurizedTweets, featuresColumnName)
     val tweetsData: RDD[Vector] =
