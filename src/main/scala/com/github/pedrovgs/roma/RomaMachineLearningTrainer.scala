@@ -1,6 +1,6 @@
 package com.github.pedrovgs.roma
 
-import org.apache.spark.ml.feature.{Word2Vec, Word2VecModel}
+import org.apache.spark.ml.feature.{StopWordsRemover, Word2Vec, Word2VecModel}
 import org.apache.spark.mllib.classification.{SVMModel, SVMWithSGD}
 import org.apache.spark.mllib.evaluation.BinaryClassificationMetrics
 import org.apache.spark.mllib.linalg.Vector
@@ -15,11 +15,12 @@ object RomaMachineLearningTrainer extends SparkApp with Resources {
 
   import sqlContext.implicits._
 
-  private val numberOfIterations: Int = 100
-  private val tweetWordsColumnName    = "tweetWords"
-  private val sentimentColumnName     = "sentiment"
-  private val featuresColumnName      = "features"
-  private val labelColumnName         = "label"
+  private val numberOfIterations: Int     = 100
+  private val curatedTweetWordsColumnName = "tweetWords"
+  private val tweetWordsColumnName        = "words"
+  private val sentimentColumnName         = "sentiment"
+  private val featuresColumnName          = "features"
+  private val labelColumnName             = "label"
 
   pprint.pprintln("Let's read some tweets for our trainig process")
 
@@ -33,26 +34,37 @@ object RomaMachineLearningTrainer extends SparkApp with Resources {
 
   pprint.pprintln("Let's extract features from the Tweets content")
   private val word2VectorModel = new Word2Vec()
-    .setInputCol(tweetWordsColumnName)
+    .setInputCol(curatedTweetWordsColumnName)
     .setOutputCol(featuresColumnName)
     .fit(trainingTweets)
   private val featuredTrainingTweets = featurizeTweets(trainingTweets, word2VectorModel).cache()
   private val featuredTestTweets     = featurizeTweets(testTweets, word2VectorModel).cache()
 
   pprint.pprintln("Ready to start training our Support Vector Machine model!")
-  private val svmModel     = trainSvmModel(featuredTrainingTweets, numberOfIterations)
+  private val svmModel = trainSvmModel(featuredTrainingTweets, numberOfIterations)
   pprint.pprintln("Model ready! Let's measure our area under PR & ROC")
   measureSvmModelTraining(featuredTestTweets, svmModel)
+  pprint.pprintln("Model ready! Let's measure the area under PR & ROC for the training data")
+  measureSvmModelTraining(featuredTrainingTweets, svmModel)
 
   pprint.pprintln("Time to use our model!")
-  predict(svmModel,
-          sparkContext.parallelize(
-            Seq("I'm happy to announce I've found a new excelent job!",
-              "I don't understand why airlines are so incompetent")))
+  predict(
+    svmModel,
+    sparkContext.parallelize(
+      Seq(
+        "I'm happy to announce I've found a new excelent job!",
+        "I love u",
+        "Such a great news!",
+        "I don't understand why airlines are so incompetent",
+        "This is the worst movie I've ever seen",
+        "I hate you"
+      ))
+  )
 
   private def readAndFilterTweets(resourceName: String): DataFrame = {
     pprint.pprintln("Reading tweets from: " + resourceName)
-    sqlContext.read
+    val stopWordsRemover = new StopWordsRemover()
+    val tweets = sqlContext.read
       .option("header", "true")
       .option("inferSchema", "true")
       .csv(getFilePath(resourceName))
@@ -77,12 +89,15 @@ object RomaMachineLearningTrainer extends SparkApp with Resources {
         (label, tweetWords)
       }
       .toDF(labelColumnName, tweetWordsColumnName)
+    stopWordsRemover.setInputCol(tweetWordsColumnName).setOutputCol(curatedTweetWordsColumnName).transform(tweets)
   }
 
-  private def extractTweetWords(tweet: String): Array[String] = tweet.toLowerCase.split(" ")
-    .map(_.replaceAll("""([\p{Punct}&&[^.]]|\b\p{IsLetter}{1,2}\b)\s*""", ""))
-    .filterNot(_.startsWith("@"))
-    .filterNot(_.isEmpty)
+  private def extractTweetWords(tweet: String): Array[String] =
+    tweet.toLowerCase
+      .split(" ")
+      .filterNot(_.startsWith("@"))
+      .map(_.replaceAll("\\p{P}(?=\\s|$)", ""))
+      .filterNot(_.isEmpty)
 
   private def featurizeTweets(tweets: DataFrame, word2VectorModel: Word2VecModel): RDD[LabeledPoint] = {
     pprint.pprintln("Featuring " + tweets.count() + " tweets into labeled points.")
@@ -118,9 +133,12 @@ object RomaMachineLearningTrainer extends SparkApp with Resources {
   private def predict(svmModel: SVMModel, originalTweets: RDD[String]) = {
     pprint.pprintln("List of original tweets:")
     originalTweets.foreach(pprint.pprintln(_))
-    val tweetsToAnalyze = originalTweets
+    val stopWordsRemover = new StopWordsRemover()
+    val tweets = originalTweets
       .map(extractTweetWords)
       .toDF(tweetWordsColumnName)
+    val tweetsToAnalyze =
+      stopWordsRemover.setInputCol(tweetWordsColumnName).setOutputCol(curatedTweetWordsColumnName).transform(tweets)
     val featurizedTweets = word2VectorModel.transform(tweetsToAnalyze)
     val convertedTweetsResult =
       MLUtils.convertVectorColumnsFromML(featurizedTweets, featuresColumnName)
