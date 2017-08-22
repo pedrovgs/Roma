@@ -15,7 +15,7 @@ object RomaMachineLearningTrainer extends SparkApp with Resources {
 
   import sqlContext.implicits._
 
-  private val numberOfIterations: Int = 100
+  private val numberOfIterations: Int = 1000
   private val curatedTweetWordsColumnName = "tweetWords"
   private val tweetWordsColumnName = "words"
   private val sentimentColumnName = "sentiment"
