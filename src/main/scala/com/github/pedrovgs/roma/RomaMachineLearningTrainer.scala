@@ -101,6 +101,7 @@ object RomaMachineLearningTrainer extends SparkApp with Resources {
     tweet.toLowerCase
       .split(" ")
       .filterNot(_.startsWith("@"))
+      .filterNot(_.startsWith("http"))
       .map(_.replaceAll("\\p{P}(?=\\s|$)", ""))
       .filterNot(_.isEmpty)
 
