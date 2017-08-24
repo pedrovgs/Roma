@@ -25,7 +25,7 @@ object RomaMachineLearningTrainer extends SparkApp with Resources {
 
   pprint.pprintln("Let's read some tweets for our trainig process")
 
-  private val trainingTweets: DataFrame = readAndFilterTweets("/training.csv").cache()
+  private val trainingTweets: DataFrame = readAndFilterTweets("/training.gz").cache()
   private val testTweets: DataFrame = readAndFilterTweets("/test.csv").cache()
 
   pprint.pprintln("Here we have some training tweets already prepared to extract features")
