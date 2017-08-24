@@ -39,17 +39,21 @@ object RomaMachineLearningTrainer extends SparkApp with Resources {
     .setInputCol(curatedTweetWordsColumnName)
     .setOutputCol(rawFeaturesColumnName)
     .transform(trainingTweets)
+  private val featurizedTestData = new HashingTF()
+    .setInputCol(curatedTweetWordsColumnName)
+    .setOutputCol(rawFeaturesColumnName)
+    .transform(testTweets)
 
   private val idfModel = new IDF().setInputCol(rawFeaturesColumnName).setOutputCol(featuresColumnName).fit(featurizedData)
 
-  private val featuredTrainingTweets = featurizeTweets(trainingTweets).cache()
-  private val featuredTestTweets = featurizeTweets(testTweets).cache()
+  private val featuredTrainingTweets = featurizeTweets(featurizedData).cache()
+  private val featuredTestTweets = featurizeTweets(featurizedTestData).cache()
 
   pprint.pprintln("Ready to start training our Support Vector Machine model!")
   private val svmModel = trainSvmModel(featuredTrainingTweets, numberOfIterations)
-  pprint.pprintln("Model ready! Let's measure our area under PR & ROC")
+  pprint.pprintln("Model ready! Let's measure our area under PR & ROC for the TESTING data")
   measureSvmModelTraining(featuredTestTweets, svmModel)
-  pprint.pprintln("Model ready! Let's measure the area under PR & ROC for the training data")
+  pprint.pprintln("Model ready! Let's measure the area under PR & ROC for the TRAINING data")
   measureSvmModelTraining(featuredTrainingTweets, svmModel)
 
   pprint.pprintln("Time to use our model!")
@@ -107,7 +111,7 @@ object RomaMachineLearningTrainer extends SparkApp with Resources {
 
   private def featurizeTweets(tweets: DataFrame): RDD[LabeledPoint] = {
     pprint.pprintln("Featuring " + tweets.count() + " tweets into labeled points.")
-    val tokenizedTweets = idfModel.transform(featurizedData)
+    val tokenizedTweets = idfModel.transform(tweets)
     val featuredTweets = MLUtils.convertVectorColumnsFromML(tokenizedTweets, featuresColumnName)
     featuredTweets.rdd.map { row =>
       val label = row.getAs[Double](labelColumnName)
