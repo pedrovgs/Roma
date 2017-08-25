@@ -1,8 +1,8 @@
 package com.github.pedrovgs.roma
 
 import org.apache.spark.ml.feature._
-import org.apache.spark.mllib.classification.{SVMModel, SVMWithSGD}
-import org.apache.spark.mllib.evaluation.BinaryClassificationMetrics
+import org.apache.spark.mllib.classification.{LogisticRegressionWithLBFGS, SVMModel, SVMWithSGD}
+import org.apache.spark.mllib.evaluation.{BinaryClassificationMetrics, MulticlassMetrics}
 import org.apache.spark.mllib.linalg.Vector
 import org.apache.spark.mllib.regression.LabeledPoint
 import org.apache.spark.mllib.util.MLUtils
@@ -15,18 +15,18 @@ object RomaMachineLearningTrainer extends SparkApp with Resources {
 
   import sqlContext.implicits._
 
-  private val numberOfIterations: Int = 1000
+  private val numberOfIterations: Int     = 100
   private val curatedTweetWordsColumnName = "tweetWords"
-  private val tweetWordsColumnName = "words"
-  private val sentimentColumnName = "sentiment"
-  private val rawFeaturesColumnName = "rawFeatures"
-  private val featuresColumnName = "features"
-  private val labelColumnName = "label"
+  private val tweetWordsColumnName        = "words"
+  private val sentimentColumnName         = "sentiment"
+  private val rawFeaturesColumnName       = "rawFeatures"
+  private val featuresColumnName          = "features"
+  private val labelColumnName             = "label"
 
   pprint.pprintln("Let's read some tweets for our trainig process")
 
   private val trainingTweets: DataFrame = readAndFilterTweets("/training.gz").cache()
-  private val testTweets: DataFrame = readAndFilterTweets("/test.csv").cache()
+  private val testTweets: DataFrame     = readAndFilterTweets("/test.csv").cache()
 
   pprint.pprintln("Here we have some training tweets already prepared to extract features")
   trainingTweets.show()
@@ -44,15 +44,17 @@ object RomaMachineLearningTrainer extends SparkApp with Resources {
     .setOutputCol(rawFeaturesColumnName)
     .transform(testTweets)
 
-  private val idfModel = new IDF().setInputCol(rawFeaturesColumnName).setOutputCol(featuresColumnName).fit(featurizedData)
+  private val idfModel =
+    new IDF().setInputCol(rawFeaturesColumnName).setOutputCol(featuresColumnName).fit(featurizedData)
 
   private val featuredTrainingTweets = featurizeTweets(featurizedData).cache()
-  private val featuredTestTweets = featurizeTweets(featurizedTestData).cache()
+  private val featuredTestTweets     = featurizeTweets(featurizedTestData).cache()
 
   pprint.pprintln("Ready to start training our Support Vector Machine model!")
   private val svmModel = trainSvmModel(featuredTrainingTweets, numberOfIterations)
+
   pprint.pprintln("Model ready! Let's measure our area under PR & ROC for the TESTING data")
-  measureSvmModelTraining(featuredTestTweets, svmModel)
+  private val testScoreAndLabels = measureSvmModelTraining(featuredTestTweets, svmModel)
   pprint.pprintln("Model ready! Let's measure the area under PR & ROC for the TRAINING data")
   measureSvmModelTraining(featuredTrainingTweets, svmModel)
 
@@ -112,9 +114,9 @@ object RomaMachineLearningTrainer extends SparkApp with Resources {
   private def featurizeTweets(tweets: DataFrame): RDD[LabeledPoint] = {
     pprint.pprintln("Featuring " + tweets.count() + " tweets into labeled points.")
     val tokenizedTweets = idfModel.transform(tweets)
-    val featuredTweets = MLUtils.convertVectorColumnsFromML(tokenizedTweets, featuresColumnName)
+    val featuredTweets  = MLUtils.convertVectorColumnsFromML(tokenizedTweets, featuresColumnName)
     featuredTweets.rdd.map { row =>
-      val label = row.getAs[Double](labelColumnName)
+      val label    = row.getAs[Double](labelColumnName)
       val features = row.getAs[Vector](featuresColumnName)
       new LabeledPoint(label, features)
     }
@@ -124,20 +126,37 @@ object RomaMachineLearningTrainer extends SparkApp with Resources {
     pprint.pprintln(
       "Training SVM model with " + numberOfIterations + " number of iterations and " + labeledPoints
         .count() + " training tweets.")
-    SVMWithSGD.train(labeledPoints, numberOfIterations)
+    val model = SVMWithSGD.train(labeledPoints, numberOfIterations)
+    model.clearThreshold()
   }
 
-  private def measureSvmModelTraining(testData: RDD[LabeledPoint], svmModel: SVMModel) = {
+  private def measureSvmModelTraining(testData: RDD[LabeledPoint], svmModel: SVMModel): RDD[(Double, Double)] = {
     val scoreAndLabels =
       testData.map { point =>
         val score = svmModel.predict(point.features)
         (score, point.label)
       }
     val metrics = new BinaryClassificationMetrics(scoreAndLabels)
+    pprint.pprintln("--------------------------------------")
+    pprint.pprintln("Score and Labels:")
+    scoreAndLabels.take(5).foreach {
+      case (score, label) => pprint.pprintln("Score: " + score + ", label: " + label)
+    }
     pprint.pprintln("Binary classification metrics:")
     pprint.pprintln("Area under PR: " + metrics.areaUnderPR())
     pprint.pprintln("Area under ROC: " + metrics.areaUnderROC())
-    metrics
+
+    val scores = scoreAndLabels.map(_._1).cache()
+    pprint.pprintln("Min score -> " + scores.min())
+    pprint.pprintln("Max score -> " + scores.max())
+
+    val positiveValues = scores.filter(_ > 0).count()
+    val negativeValues = scores.filter(_ < 0).count()
+    pprint.pprintln("Positive scores -> " + positiveValues)
+    pprint.pprintln("Negative scores -> " + negativeValues)
+
+    pprint.pprintln("--------------------------------------")
+    scoreAndLabels
   }
 
   private def predict(svmModel: SVMModel, originalTweets: RDD[String]) = {
@@ -159,9 +178,9 @@ object RomaMachineLearningTrainer extends SparkApp with Resources {
     val tweetsData: RDD[Vector] =
       convertedTweetsResult.rdd.map(_.getAs[Vector](featuresColumnName))
 
-    val prediction = svmModel.predict(tweetsData)
+    val prediction = svmModel.predict(tweetsData).cache()
 
-    val predictionResult: RDD[(String, Double)] = originalTweets.zip(prediction)
+    val predictionResult: RDD[(String, Double)] = originalTweets.zip(prediction).cache()
     pprint.pprintln(
       "The following table shows the result of a tweet prediction based on a Support Vector Machine algorithm and using tweets as input data:")
     pprint.pprintln("Class 0 : Angry tweet")
