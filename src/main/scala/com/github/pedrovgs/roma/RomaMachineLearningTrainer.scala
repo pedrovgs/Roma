@@ -66,9 +66,11 @@ object RomaMachineLearningTrainer extends SparkApp with Resources {
         "I'm happy to announce I've found a new excelent job!",
         "I love u",
         "Such a great news!",
+        "I really love love love love love love you my darling",
         "I don't understand why airlines are so incompetent",
         "This is the worst movie I've ever seen",
-        "I hate you"
+        "I hate you",
+        "I really hate hate hate hate hate hate you son of a bitch"
       ))
   )
 
@@ -89,8 +91,8 @@ object RomaMachineLearningTrainer extends SparkApp with Resources {
         sentiment == 4 || sentiment == 0
       }
       .map { row =>
-        //Sentiment 4 in the CSV is a positive sentiment
-        //Sentiment 0 in the CSV is a NEGATIVE sentiment
+        //Sentiment 4 in the CSV is a POSITIVE sentiment. Labeled as 1
+        //Sentiment 0 in the CSV is a NEGATIVE sentiment. Labeled as 0
         val label = if (row.getAs[Int](sentimentColumnName).equals(4)) {
           1.0
         } else {
@@ -108,6 +110,7 @@ object RomaMachineLearningTrainer extends SparkApp with Resources {
       .split(" ")
       .filterNot(_.startsWith("@"))
       .filterNot(_.startsWith("http"))
+      .map(_.replaceAll("#", ""))
       .map(_.replaceAll("\\p{P}(?=\\s|$)", ""))
       .filterNot(_.isEmpty)
 
@@ -131,6 +134,7 @@ object RomaMachineLearningTrainer extends SparkApp with Resources {
   }
 
   private def measureSvmModelTraining(testData: RDD[LabeledPoint], svmModel: SVMModel): RDD[(Double, Double)] = {
+    pprint.pprintln("Labeled point dimension = " + testData.first().features.size)
     val scoreAndLabels =
       testData.map { point =>
         val score = svmModel.predict(point.features)
@@ -146,14 +150,78 @@ object RomaMachineLearningTrainer extends SparkApp with Resources {
     pprint.pprintln("Area under PR: " + metrics.areaUnderPR())
     pprint.pprintln("Area under ROC: " + metrics.areaUnderROC())
 
-    val scores = scoreAndLabels.map(_._1).cache()
-    pprint.pprintln("Min score -> " + scores.min())
-    pprint.pprintln("Max score -> " + scores.max())
+    val scores   = scoreAndLabels.map(_._1).cache()
+    val labels   = scoreAndLabels.map(_._2).cache()
+    val minScore = scores.min()
+    pprint.pprintln("Min score -> " + minScore)
+    val maxScore = scores.max()
+    pprint.pprintln("Max score -> " + maxScore)
 
     val positiveValues = scores.filter(_ > 0).count()
     val negativeValues = scores.filter(_ < 0).count()
+
+    val truePositives = scoreAndLabels
+      .filter {
+        case (score, label) => score > 0 && label == 1.0
+      }
+      .count()
+    val falsePositives = scoreAndLabels
+      .filter {
+        case (score, label) => score > 0 && label == 0.0
+      }
+      .count()
+    val trueNegative = scoreAndLabels
+      .filter {
+        case (score, label) => score <= 0 && label == 0.0
+      }
+      .count()
+    val falseNegative = scoreAndLabels
+      .filter {
+        case (score, label) => score <= 0 && label == 1.0
+      }
+      .count()
+
+    val sumPredictedPositives = truePositives + falsePositives
+    val sumPredictedNegatives = trueNegative + falseNegative
+
+    val sumRealPositives = truePositives + falseNegative
+    val sumRealNegatives = trueNegative + falsePositives
+
+    val sumTotal = sumRealNegatives + sumRealPositives
+
     pprint.pprintln("Positive scores -> " + positiveValues)
+    pprint.pprintln("Positive labels -> " + labels.filter(_ == 1.0).count())
     pprint.pprintln("Negative scores -> " + negativeValues)
+    pprint.pprintln("Negative labels -> " + labels.filter(_ == 0.0).count())
+
+    pprint.pprintln("Let's write the confusion matrix")
+    pprint.pprintln("  ______________________ |")
+    pprint.pprintln("        Prediction        |")
+    pprint.pprintln("  ______________________ |")
+    pprint.pprintln("         | P | N | Sum")
+    pprint.pprintln("Real | P |" + truePositives + "|" + falseNegative + "| " + sumRealPositives)
+    pprint.pprintln("     | N |" + falsePositives + "|" + trueNegative + "|" + sumRealNegatives)
+    pprint.pprintln("     |Sum|" + sumPredictedPositives + "|" + sumPredictedNegatives + "|" + sumTotal)
+
+    pprint.pprintln("")
+    pprint.pprintln("Let's write the confusion matrix in percentage")
+    pprint.pprintln("  ______________________ |")
+    pprint.pprintln("        Prediction        |")
+    pprint.pprintln("  ______________________ |")
+    pprint.pprintln("         | P | N ")
+    pprint.pprintln(
+      "Real | P |" + (truePositives.toDouble / sumTotal.toDouble) * 100.0 + "% |" + (falseNegative.toDouble / sumTotal.toDouble) * 100.0 + "%")
+    pprint.pprintln(
+      "     | N |" + (falsePositives.toDouble / sumTotal.toDouble) * 100.0 + "% |" + (trueNegative.toDouble / sumTotal.toDouble) * 100.0 + "%")
+    pprint.pprintln("--------------------------------------")
+
+    val pointsOverMax           = scoreAndLabels.filter(_._1 >= 0.4)
+    val pointsLowerMin          = scoreAndLabels.filter(_._1 <= -0.4)
+    val wellPositivelyPredicted = pointsOverMax.filter(_._2 == 1.0)
+    val wellNegativelyPredicted = pointsLowerMin.filter(_._2 == 0.0)
+
+    pprint.pprintln("Positive predicted properly with a 0.4 as threshold = " + wellPositivelyPredicted.count())
+    pprint.pprintln("Negative predicted properly with a -0.4 as threshold = " + wellNegativelyPredicted.count())
 
     pprint.pprintln("--------------------------------------")
     scoreAndLabels
