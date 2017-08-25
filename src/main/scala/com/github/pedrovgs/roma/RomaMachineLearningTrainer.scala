@@ -8,6 +8,8 @@ import org.apache.spark.mllib.regression.LabeledPoint
 import org.apache.spark.mllib.util.MLUtils
 import org.apache.spark.rdd.RDD
 import org.apache.spark.sql.DataFrame
+import org.apache.spark.ml.feature.PCA
+import org.apache.spark.ml.linalg.Vectors
 
 object RomaMachineLearningTrainer extends SparkApp with Resources {
 
@@ -23,7 +25,7 @@ object RomaMachineLearningTrainer extends SparkApp with Resources {
   private val featuresColumnName          = "features"
   private val labelColumnName             = "label"
 
-  pprint.pprintln("Let's read some tweets for our trainig process")
+  pprint.pprintln("Let's read some tweets for our training process")
 
   private val trainingTweets: DataFrame = readAndFilterTweets("/training.gz").cache()
   private val testTweets: DataFrame     = readAndFilterTweets("/test.csv").cache()
@@ -68,6 +70,8 @@ object RomaMachineLearningTrainer extends SparkApp with Resources {
         "Such a great news!",
         "I really love love love love love love you my darling",
         "I don't understand why airlines are so incompetent",
+        "This is a neutral tweet",
+        "My house is big. Yours is small",
         "This is the worst movie I've ever seen",
         "I hate you",
         "I really hate hate hate hate hate hate you son of a bitch"
@@ -129,17 +133,26 @@ object RomaMachineLearningTrainer extends SparkApp with Resources {
     pprint.pprintln(
       "Training SVM model with " + numberOfIterations + " number of iterations and " + labeledPoints
         .count() + " training tweets.")
-    val model = SVMWithSGD.train(labeledPoints, numberOfIterations)
+    val regParam = 0.01
+    val stepSize = 1.0
+    val model    = SVMWithSGD.train(labeledPoints, numberOfIterations, stepSize, regParam)
     model.clearThreshold()
   }
 
   private def measureSvmModelTraining(testData: RDD[LabeledPoint], svmModel: SVMModel): RDD[(Double, Double)] = {
     pprint.pprintln("Labeled point dimension = " + testData.first().features.size)
+    //pprint.pprintln("First feature point = " + testData)
     val scoreAndLabels =
       testData.map { point =>
         val score = svmModel.predict(point.features)
         (score, point.label)
       }
+    pprint.pprintln("Dimension of the weights =" + svmModel.weights.size)
+    pprint.pprintln("Maximum value of the weights=" + svmModel.weights.asML.toArray.max)
+    pprint.pprintln("Minimum value of the weights=" + svmModel.weights.asML.toArray.min)
+    pprint.pprintln("Intercept =" + svmModel.intercept)
+    //pprint.pprintln("Summary of the Model" + svmModel.toString())
+
     val metrics = new BinaryClassificationMetrics(scoreAndLabels)
     pprint.pprintln("--------------------------------------")
     pprint.pprintln("Score and Labels:")
@@ -149,6 +162,7 @@ object RomaMachineLearningTrainer extends SparkApp with Resources {
     pprint.pprintln("Binary classification metrics:")
     pprint.pprintln("Area under PR: " + metrics.areaUnderPR())
     pprint.pprintln("Area under ROC: " + metrics.areaUnderROC())
+    //metrics.pr()
 
     val scores   = scoreAndLabels.map(_._1).cache()
     val labels   = scoreAndLabels.map(_._2).cache()
@@ -156,6 +170,7 @@ object RomaMachineLearningTrainer extends SparkApp with Resources {
     pprint.pprintln("Min score -> " + minScore)
     val maxScore = scores.max()
     pprint.pprintln("Max score -> " + maxScore)
+    val argMaxScore = scores.filter(_ == maxScore)
 
     val positiveValues = scores.filter(_ > 0).count()
     val negativeValues = scores.filter(_ < 0).count()
@@ -189,6 +204,8 @@ object RomaMachineLearningTrainer extends SparkApp with Resources {
 
     val sumTotal = sumRealNegatives + sumRealPositives
 
+    val percWellClassified = (truePositives.toDouble / sumTotal.toDouble) * 100.0 + (trueNegative.toDouble / sumTotal.toDouble) * 100.0
+
     pprint.pprintln("Positive scores -> " + positiveValues)
     pprint.pprintln("Positive labels -> " + labels.filter(_ == 1.0).count())
     pprint.pprintln("Negative scores -> " + negativeValues)
@@ -210,18 +227,20 @@ object RomaMachineLearningTrainer extends SparkApp with Resources {
     pprint.pprintln("  ______________________ |")
     pprint.pprintln("         | P | N ")
     pprint.pprintln(
-      "Real | P |" + (truePositives.toDouble / sumTotal.toDouble) * 100.0 + "% |" + (falseNegative.toDouble / sumTotal.toDouble) * 100.0 + "%")
+      "Real | P |" + (truePositives.toDouble / sumTotal.toDouble) * 100.0 + " % |" + (falseNegative.toDouble / sumTotal.toDouble) * 100.0 + " %")
     pprint.pprintln(
-      "     | N |" + (falsePositives.toDouble / sumTotal.toDouble) * 100.0 + "% |" + (trueNegative.toDouble / sumTotal.toDouble) * 100.0 + "%")
+      "     | N |" + (falsePositives.toDouble / sumTotal.toDouble) * 100.0 + " % |" + (trueNegative.toDouble / sumTotal.toDouble) * 100.0 + " %")
+    pprint.pprintln("Percentage of well classified: " + percWellClassified + " %")
+
     pprint.pprintln("--------------------------------------")
 
-    val pointsOverMax           = scoreAndLabels.filter(_._1 >= 0.4)
-    val pointsLowerMin          = scoreAndLabels.filter(_._1 <= -0.4)
+    val pointsOverMax           = scoreAndLabels.filter(_._1 >= 0.3)
+    val pointsLowerMin          = scoreAndLabels.filter(_._1 <= -0.3)
     val wellPositivelyPredicted = pointsOverMax.filter(_._2 == 1.0)
     val wellNegativelyPredicted = pointsLowerMin.filter(_._2 == 0.0)
 
-    pprint.pprintln("Positive predicted properly with a 0.4 as threshold = " + wellPositivelyPredicted.count())
-    pprint.pprintln("Negative predicted properly with a -0.4 as threshold = " + wellNegativelyPredicted.count())
+    pprint.pprintln("Positive predicted properly with a 0.3 as threshold = " + wellPositivelyPredicted.count())
+    pprint.pprintln("Negative predicted properly with a -0.3 as threshold = " + wellNegativelyPredicted.count())
 
     pprint.pprintln("--------------------------------------")
     scoreAndLabels
