@@ -1,6 +1,7 @@
-package com.github.pedrovgs.roma
+package com.github.pedrovgs.roma.machinelearning
 
 import com.github.pedrovgs.roma.extensions.StringExtension._
+import com.github.pedrovgs.roma.{Resources, SparkApp}
 import org.apache.spark.ml.feature._
 import org.apache.spark.mllib.classification.{SVMModel, SVMWithSGD}
 import org.apache.spark.mllib.evaluation.BinaryClassificationMetrics

@@ -14,7 +14,29 @@ object RomaApplication extends SparkApp {
 
   val appName: String = "Roma"
 
-  private lazy val storage = sparkContext.broadcast(new TweetsStorage(new Firebase))
+  override def main(args: Array[String]): Unit = {
+    pprint.pprintln("Initializing...")
+    val twitterCredentials  = loadTwitterCredentials()
+    val firebaseCredentials = loadFirebaseCredentials()
+    (firebaseCredentials, twitterCredentials) match {
+      case (Some(_), Some(twitterConfig)) => {
+        val authorization = authorizeTwitterStream(twitterConfig)
+        startStreaming(authorization)
+      }
+      case _ => pprint.pprintln("Finishing application")
+    }
+  }
+
+  private def authorizeTwitterStream(twitterConfig: TwitterConfig) = {
+    val configuration = new ConfigurationBuilder()
+      .setOAuthConsumerKey(twitterConfig.consumerKey)
+      .setOAuthConsumerSecret(twitterConfig.consumerSecret)
+      .setOAuthAccessToken(twitterConfig.accessToken)
+      .setOAuthAccessTokenSecret(twitterConfig.accessTokenSecret)
+      .build()
+    val authorization = new OAuthAuthorization(configuration)
+    authorization
+  }
 
   private def twitterStream(authorization: Authorization) =
     TwitterUtils.createFilteredStream(streamingContext, Some(authorization))
@@ -49,40 +71,32 @@ object RomaApplication extends SparkApp {
       .filter(_.getLang == "en")
       .foreachRDD { rdd: RDD[Status] =>
         if (!rdd.isEmpty()) {
-          pprint.pprintln("Let's analyze a bunch of tweets!")
-          val classifiedTweets: RDD[ClassifiedTweet] = rdd.map { status =>
-            ClassifiedTweet(status.getText, true, 0.99)
-          }
-          storage.value
-            .saveTweets(classifiedTweets.collect)
-            .onComplete {
-              case Success(tweets) =>
-                pprint.pprintln("Tweets saved properly!")
-                tweets.foreach(pprint.pprintln(_))
-              case Failure(_) => pprint.pprintln("Error saving tweets :_(")
-            }
+          val classifiedTweets: RDD[ClassifiedTweet] = classifyTweets(rdd)
+          saveTweets(classifiedTweets)
         }
       }
     streamingContext.start()
     streamingContext.awaitTermination()
+    pprint.pprintln("Application finished")
   }
 
-  pprint.pprintln("Initializing...")
-  private val twitterCredentials  = loadTwitterCredentials()
-  private val firebaseCredentials = loadFirebaseCredentials()
-  (firebaseCredentials, twitterCredentials) match {
-    case (Some(_), Some(twitterConfig)) => {
-      val configuration = new ConfigurationBuilder()
-        .setOAuthConsumerKey(twitterConfig.consumerKey)
-        .setOAuthConsumerSecret(twitterConfig.consumerSecret)
-        .setOAuthAccessToken(twitterConfig.accessToken)
-        .setOAuthAccessTokenSecret(twitterConfig.accessTokenSecret)
-        .build()
-      val authorization = new OAuthAuthorization(configuration)
-      startStreaming(authorization)
-      pprint.pprintln("Application finished")
+  private def classifyTweets(rdd: RDD[Status]) = {
+    pprint.pprintln("Let's analyze a bunch of tweets!")
+    rdd.map { status =>
+      //TODO: Use the classification model here.
+      ClassifiedTweet(status.getText, true, 0.99)
     }
-    case _ => pprint.pprintln("Finishing application")
   }
 
+  private def saveTweets(classifiedTweets: RDD[ClassifiedTweet]) = {
+    val storage = new TweetsStorage(new Firebase)
+    storage
+      .saveTweets(classifiedTweets.collect)
+      .onComplete {
+        case Success(tweets) =>
+          pprint.pprintln("Tweets saved properly!")
+          tweets.foreach(pprint.pprintln(_))
+        case Failure(_) => pprint.pprintln("Error saving tweets :_(")
+      }
+  }
 }

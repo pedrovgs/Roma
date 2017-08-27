@@ -14,7 +14,7 @@ then
     cp -R src/main/resources* docker/data
     spark-submit \
       --driver-memory 6g \
-      --class com.github.pedrovgs.roma.RomaMachineLearningTrainer \
+      --class com.github.pedrovgs.roma.machinelearning.RomaMachineLearningTrainer \
       --deploy-mode client \
       target/scala-2.11/roma.jar
 else
