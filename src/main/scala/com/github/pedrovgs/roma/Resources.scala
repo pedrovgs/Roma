@@ -1,5 +1,6 @@
 package com.github.pedrovgs.roma
 
+import com.github.pedrovgs.roma.Console._
 import java.io.File
 import java.nio.file.{Files, Paths}
 
@@ -11,18 +12,18 @@ trait Resources {
     val jarPath    = getClass.getResource(name).getPath
     val volumePath = "/tmp/data/resources" + name
     if (exists(jarPath)) {
-      pprint.pprintln("Reading existing jar path at: " + jarPath)
+      print("Reading existing jar path at: " + jarPath)
       jarPath
     } else if (exists(volumePath)) {
-      pprint.pprintln("Reading existing volume path at: " + volumePath)
+      print("Reading existing volume path at: " + volumePath)
       "file://" + volumePath + "/"
     } else {
       val fileName   = name.substring(name.lastIndexOf("/") + 1)
       val workerPath = SparkFiles.get(fileName)
       if (exists(workerPath)) {
-        pprint.pprintln("Reading existing worker path at: " + workerPath)
+        print("Reading existing worker path at: " + workerPath)
       } else {
-        pprint.pprintln("Couln't find file: " + fileName)
+        print("Couln't find file: " + fileName)
       }
       "file://" + workerPath + "/"
     }

@@ -1,19 +1,18 @@
 package com.github.pedrovgs.roma.machinelearning
 
 import com.github.pedrovgs.roma.Resources
-import com.github.pedrovgs.roma.machinelearning.Config._
+import com.github.pedrovgs.roma.TweetColumns._
 import com.github.pedrovgs.roma.machinelearning.FeaturesExtractor._
 import org.apache.spark.sql.{DataFrame, SQLContext}
-import org.apache.spark.storage.StorageLevel
 
 private[machinelearning] object Corpus extends Resources {
 
-  private val contentColumnName = "content"
-  private val sentimentColumnName = "sentiment"
+  private val contentColumnName         = "content"
+  private val sentimentColumnName       = "sentiment"
   private val positiveSentimentCsvValue = 4
   private val negativeSentimentCsvValue = 0
-  private val positiveLabel = 1.0
-  private val negativeLabel = 0.0
+  private val positiveLabel             = 1.0
+  private val negativeLabel             = 0.0
 
   def trainingTweets(sqlContext: SQLContext): DataFrame = readAndFilterTweets("/training.gz", sqlContext)
 
@@ -21,7 +20,7 @@ private[machinelearning] object Corpus extends Resources {
 
   private def readAndFilterTweets(resourceName: String, sqlContext: SQLContext): DataFrame = {
     val tweets: DataFrame = readTweets(resourceName, sqlContext)
-    extract(tweets).persist(StorageLevel.MEMORY_ONLY)
+    extract(tweets).cache()
   }
 
   private def readTweets(resourceName: String, sqlContext: SQLContext) = {
@@ -44,6 +43,5 @@ private[machinelearning] object Corpus extends Resources {
       }
       .toDF(labelColumnName, tweetContentColumnName)
   }
-
 
 }

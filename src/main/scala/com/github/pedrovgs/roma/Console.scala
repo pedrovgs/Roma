@@ -3,7 +3,7 @@ package com.github.pedrovgs.roma
 object Console {
 
   def print(string: String): Unit = {
-    pprint.pprintln(string)
+    println(scala.Console.CYAN + string + scala.Console.RESET)
   }
 
   def smallSeparator(): Unit = {
