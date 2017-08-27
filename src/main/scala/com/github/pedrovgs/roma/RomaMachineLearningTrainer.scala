@@ -16,18 +16,18 @@ object RomaMachineLearningTrainer extends SparkApp with Resources {
 
   import sqlContext.implicits._
 
-  private val numberOfIterations: Int = 100
+  private val numberOfIterations: Int     = 100
   private val curatedTweetWordsColumnName = "tweetWords"
-  private val tweetWordsColumnName = "words"
-  private val sentimentColumnName = "sentiment"
-  private val rawFeaturesColumnName = "rawFeatures"
-  private val featuresColumnName = "features"
-  private val labelColumnName = "label"
+  private val tweetWordsColumnName        = "words"
+  private val sentimentColumnName         = "sentiment"
+  private val rawFeaturesColumnName       = "rawFeatures"
+  private val featuresColumnName          = "features"
+  private val labelColumnName             = "label"
 
   pprint.pprintln("Let's read some tweets for our training process")
 
   private val trainingTweets: DataFrame = readAndFilterTweets("/training.gz").cache()
-  private val testTweets: DataFrame = readAndFilterTweets("/test.csv").cache()
+  private val testTweets: DataFrame     = readAndFilterTweets("/test.csv").cache()
 
   pprint.pprintln("Here we have some training tweets already prepared to extract features")
   trainingTweets.show()
@@ -49,7 +49,7 @@ object RomaMachineLearningTrainer extends SparkApp with Resources {
     new IDF().setInputCol(rawFeaturesColumnName).setOutputCol(featuresColumnName).fit(featurizedData)
 
   private val featuredTrainingTweets = featurizeTweets(featurizedData).cache()
-  private val featuredTestTweets = featurizeTweets(featurizedTestData).cache()
+  private val featuredTestTweets     = featurizeTweets(featurizedTestData).cache()
 
   pprint.pprintln("Ready to start training our Support Vector Machine model!")
   private val svmModel = trainSvmModel(featuredTrainingTweets, numberOfIterations)
@@ -109,8 +109,7 @@ object RomaMachineLearningTrainer extends SparkApp with Resources {
   }
 
   private def extractTweetWords(tweet: String): Array[String] =
-    tweet.toLowerCase
-      .trim
+    tweet.toLowerCase.trim
       .split(" ")
       .filterNot(_.startsWith("@"))
       .filterNot(_.startsWith("http"))
@@ -122,9 +121,9 @@ object RomaMachineLearningTrainer extends SparkApp with Resources {
   private def featurizeTweets(tweets: DataFrame): RDD[LabeledPoint] = {
     pprint.pprintln("Featuring " + tweets.count() + " tweets into labeled points.")
     val tokenizedTweets = idfModel.transform(tweets)
-    val featuredTweets = MLUtils.convertVectorColumnsFromML(tokenizedTweets, featuresColumnName)
+    val featuredTweets  = MLUtils.convertVectorColumnsFromML(tokenizedTweets, featuresColumnName)
     featuredTweets.rdd.map { row =>
-      val label = row.getAs[Double](labelColumnName)
+      val label    = row.getAs[Double](labelColumnName)
       val features = row.getAs[Vector](featuresColumnName)
       new LabeledPoint(label, features)
     }
@@ -136,7 +135,7 @@ object RomaMachineLearningTrainer extends SparkApp with Resources {
         .count() + " training tweets.")
     val regParam = 0.01
     val stepSize = 1.0
-    val model = SVMWithSGD.train(labeledPoints, numberOfIterations, stepSize, regParam)
+    val model    = SVMWithSGD.train(labeledPoints, numberOfIterations, stepSize, regParam)
     model.clearThreshold()
   }
 
@@ -165,8 +164,8 @@ object RomaMachineLearningTrainer extends SparkApp with Resources {
     pprint.pprintln("Area under ROC: " + metrics.areaUnderROC())
     //metrics.pr()
 
-    val scores = scoreAndLabels.map(_._1).cache()
-    val labels = scoreAndLabels.map(_._2).cache()
+    val scores   = scoreAndLabels.map(_._1).cache()
+    val labels   = scoreAndLabels.map(_._2).cache()
     val minScore = scores.min()
     pprint.pprintln("Min score -> " + minScore)
     val maxScore = scores.max()
@@ -235,8 +234,8 @@ object RomaMachineLearningTrainer extends SparkApp with Resources {
 
     pprint.pprintln("--------------------------------------")
 
-    val pointsOverMax = scoreAndLabels.filter(_._1 >= 0.3)
-    val pointsLowerMin = scoreAndLabels.filter(_._1 <= -0.3)
+    val pointsOverMax           = scoreAndLabels.filter(_._1 >= 0.3)
+    val pointsLowerMin          = scoreAndLabels.filter(_._1 <= -0.3)
     val wellPositivelyPredicted = pointsOverMax.filter(_._2 == 1.0)
     val wellNegativelyPredicted = pointsLowerMin.filter(_._2 == 0.0)
 

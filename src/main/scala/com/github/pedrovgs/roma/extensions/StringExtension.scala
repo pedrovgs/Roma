@@ -12,10 +12,10 @@ object StringExtension {
       if (strLen <= 1) {
         return str
       }
-      val strChar = str.toCharArray
-      var temp = strChar(0)
+      val strChar       = str.toCharArray
+      var temp          = strChar(0)
       val stringBuilder = new StringBuilder(strLen)
-      var i = 1
+      var i             = 1
       while (i < strLen) {
         val value = strChar(i)
         if (value != temp) {
