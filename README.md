@@ -31,6 +31,11 @@ firebase {
   databaseUrl = YOUR_FIREBASE_DATABASE_URL
 }
 
+machineLearning {
+  numberOfIterations = 100
+  outputFolder = "./outputs/"
+  modelFileName = "smvModel"
+}
 ```
 
 You'll need to also add a new file named ``firebaseCredentials.json`` into the ``/src/main/resources/`` folder. You can get this file from your [Firebase console](https://console.firebase.google.com).

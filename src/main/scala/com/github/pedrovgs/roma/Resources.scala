@@ -9,11 +9,11 @@ import org.apache.spark.SparkFiles
 
 trait Resources {
   def getFilePath(name: String): String = {
-    val jarPath    = getClass.getResource(name).getPath
+    val jarPath    = getClass.getResource(name)
     val volumePath = "/tmp/data/resources" + name
-    if (exists(jarPath)) {
-      print("Reading existing jar path at: " + jarPath)
-      jarPath
+    if (jarPath != null && exists(jarPath.getPath)) {
+      print("Reading existing jar path at: " + jarPath.getPath)
+      jarPath.getPath
     } else if (exists(volumePath)) {
       print("Reading existing volume path at: " + volumePath)
       "file://" + volumePath + "/"
@@ -35,5 +35,8 @@ trait Resources {
     FileUtils.deleteDirectory(new File(path))
   }
 
-  private def exists(path: String): Boolean = Files.exists(Paths.get(path))
+  private def exists(path: String): Boolean = {
+    val file = new File(path)
+    file.exists() || file.isDirectory
+  }
 }

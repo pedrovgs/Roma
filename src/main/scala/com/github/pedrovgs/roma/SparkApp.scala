@@ -14,9 +14,6 @@ private[roma] trait SparkApp extends App {
 
   private lazy val conf: SparkConf =
     new SparkConf()
-      .set("spark.kryoserializer.buffer", "256MB")
-      .set("spark.kryoserializer.buffer.max", "512")
-      .set("spark.serializer", "org.apache.spark.serializer.KryoSerializer")
 
   private lazy val sparkSession: SparkSession = SparkSession
     .builder()

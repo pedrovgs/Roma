@@ -13,6 +13,8 @@ then
     cp -R src/main/resources* /tmp/data/
     cp -R src/main/resources* docker/data
     spark-submit \
+      --driver-memory 3g \
+      --executor-memory 3g \
       --class com.github.pedrovgs.roma.RomaApplication \
       --deploy-mode client \
       target/scala-2.11/roma.jar

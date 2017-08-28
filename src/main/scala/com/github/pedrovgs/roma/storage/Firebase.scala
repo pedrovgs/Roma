@@ -7,7 +7,7 @@ import com.google.firebase.{FirebaseApp, FirebaseOptions}
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.{Future, Promise}
 
-class Firebase {
+object Firebase {
 
   private val credentials = getClass.getResourceAsStream("/firebaseCredentials.json")
   private val options = {

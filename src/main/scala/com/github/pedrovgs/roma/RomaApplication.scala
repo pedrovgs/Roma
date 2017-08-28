@@ -1,29 +1,40 @@
 package com.github.pedrovgs.roma
 
-import com.github.pedrovgs.roma.config.{ConfigLoader, FirebaseConfig, TwitterConfig}
+import com.github.pedrovgs.roma.Console._
+import com.github.pedrovgs.roma.config.{ConfigLoader, FirebaseConfig, MachineLearningConfig, TwitterConfig}
+import com.github.pedrovgs.roma.machinelearning.{FeaturesExtractor, TweetsClassifier}
 import com.github.pedrovgs.roma.storage.{Firebase, TweetsStorage}
+import org.apache.spark.mllib.classification.SVMModel
 import org.apache.spark.rdd.RDD
+import org.apache.spark.sql.Row
 import org.apache.spark.streaming.twitter.TwitterUtils
 import twitter4j.Status
 import twitter4j.auth.{Authorization, OAuthAuthorization}
 import twitter4j.conf.ConfigurationBuilder
+
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.util.{Failure, Success}
 
-object RomaApplication extends SparkApp {
+object RomaApplication extends SparkApp with Resources {
 
   val appName: String = "Roma"
 
   override def main(args: Array[String]): Unit = {
-    pprint.pprintln("Initializing...")
-    val twitterCredentials  = loadTwitterCredentials()
+    super.main(args)
+    print("Initializing...")
+    separator()
+    val twitterCredentials = loadTwitterCredentials()
+    smallSeparator()
     val firebaseCredentials = loadFirebaseCredentials()
-    (firebaseCredentials, twitterCredentials) match {
-      case (Some(_), Some(twitterConfig)) => {
+    smallSeparator()
+    val machineLearningConfig = loadMachineLearningConfig()
+    smallSeparator()
+    (firebaseCredentials, twitterCredentials, machineLearningConfig) match {
+      case (Some(_), Some(twitterConfig), Some(machineLearningConfig)) => {
         val authorization = authorizeTwitterStream(twitterConfig)
-        startStreaming(authorization)
+        startStreaming(authorization, machineLearningConfig)
       }
-      case _ => pprint.pprintln("Finishing application")
+      case _ => print("Finishing application")
     }
   }
 
@@ -42,61 +53,88 @@ object RomaApplication extends SparkApp {
     TwitterUtils.createFilteredStream(streamingContext, Some(authorization))
 
   def loadFirebaseCredentials(): Option[FirebaseConfig] = {
-    pprint.pprintln("Loading Firebase configuration")
+    print("Loading Firebase configuration")
     ConfigLoader.loadFirebaseConfig() match {
       case Some(firebaseConfig) =>
-        pprint.pprintln("Firebase configuration loaded: " + firebaseConfig)
+        print("Firebase configuration loaded: " + firebaseConfig)
         Some(firebaseConfig)
       case None =>
-        pprint.pprintln("Firebase configuration couldn't be loaded. Review your resources/application.conf file")
+        print("Firebase configuration couldn't be loaded. Review your resources/application.conf file")
         None
     }
   }
 
   private def loadTwitterCredentials(): Option[TwitterConfig] = {
-    pprint.pprintln("Loading Twitter configuration")
+    print("Loading Twitter configuration")
     ConfigLoader.loadTwitterConfig() match {
       case Some(twitterConfig) =>
-        pprint.pprintln("Twitter configuration loaded: " + twitterConfig)
+        print("Twitter configuration loaded: " + twitterConfig)
         Some(twitterConfig)
       case None =>
-        pprint.pprintln("Twitter configuration couldn't be loaded. Review your resources/application.conf file")
+        print("Twitter configuration couldn't be loaded. Review your resources/application.conf file")
         None
     }
   }
 
-  private def startStreaming(authorization: Authorization) = {
-    pprint.pprintln("Let's start reading tweets!")
+  private def loadMachineLearningConfig(): Option[MachineLearningConfig] = {
+    print("Loading Twitter configuration")
+    ConfigLoader.loadMachineLearningTrainingConfig() match {
+      case Some(machineLearningConfig) =>
+        print("Machine learning configuration loaded: " + machineLearningConfig)
+        Some(machineLearningConfig)
+      case None =>
+        print("Twitter configuration couldn't be loaded. Review your resources/application.conf file")
+        None
+    }
+  }
+
+  private def startStreaming(authorization: Authorization, machineLearningConfig: MachineLearningConfig) = {
+    print("Let's start reading tweets!")
+    separator()
+    val modelPath = getFilePath("/" + machineLearningConfig.modelFileName)
+    val svmModel = SVMModel.load(sparkContext, modelPath)
     twitterStream(authorization)
       .filter(_.getLang == "en")
       .foreachRDD { rdd: RDD[Status] =>
         if (!rdd.isEmpty()) {
-          val classifiedTweets: RDD[ClassifiedTweet] = classifyTweets(rdd)
+          val classifiedTweets: RDD[ClassifiedTweet] = classifyTweets(rdd, svmModel)
           saveTweets(classifiedTweets)
+          smallSeparator()
         }
       }
     streamingContext.start()
     streamingContext.awaitTermination()
-    pprint.pprintln("Application finished")
+    print("Application finished")
   }
 
-  private def classifyTweets(rdd: RDD[Status]) = {
-    pprint.pprintln("Let's analyze a bunch of tweets!")
-    rdd.map { status =>
-      //TODO: Use the classification model here.
-      ClassifiedTweet(status.getText, true, 0.99)
-    }
+  private def classifyTweets(status: RDD[Status], svmModel: SVMModel): RDD[ClassifiedTweet] = {
+    import sqlContext.implicits._
+    print("Let's analyze a bunch of tweets!")
+    val tweets = status.map { status =>
+      status.getText
+    }.toDF(TweetColumns.tweetContentColumnName)
+    val featurizedTweets = FeaturesExtractor.extract(tweets)
+    val classifiedTweets = TweetsClassifier.classify(sqlContext, svmModel, featurizedTweets)
+    classifiedTweets.rdd
+      .filter { row: Row =>
+        val classScore = row.getAs[Double](TweetColumns.classificationColumnName)
+        classScore > 0.33 || classScore < -0.2
+      }
+      .map { row =>
+        val content = row.getAs[String](TweetColumns.tweetContentColumnName)
+        val classScore = row.getAs[Double](TweetColumns.classificationColumnName)
+        val positiveTweet = classScore > 0
+        ClassifiedTweet(content, positiveTweet, classScore)
+      }
   }
 
   private def saveTweets(classifiedTweets: RDD[ClassifiedTweet]) = {
-    val storage = new TweetsStorage(new Firebase)
-    storage
-      .saveTweets(classifiedTweets.collect)
+    TweetsStorage.saveTweets(classifiedTweets.collect)
       .onComplete {
         case Success(tweets) =>
-          pprint.pprintln("Tweets saved properly!")
-          tweets.foreach(pprint.pprintln(_))
-        case Failure(_) => pprint.pprintln("Error saving tweets :_(")
+          print("Tweets saved properly!")
+          tweets.foreach(print(_))
+        case Failure(_) => print("Error saving tweets :_(")
       }
   }
 }

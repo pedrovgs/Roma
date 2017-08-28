@@ -1,19 +1,19 @@
 package com.github.pedrovgs.roma
 
-import com.github.pedrovgs.roma.model.{Confidence, Content}
+import com.github.pedrovgs.roma.model._
 
 import scala.beans.BeanProperty
 
 object model {
   type Content    = String
-  type Confidence = Double
+  type Score = Double
 }
 
 class FirebaseError extends Throwable
 
 case class ClassifiedTweet(@BeanProperty var content: Content,
                            @BeanProperty var loveTweet: Boolean,
-                           @BeanProperty var confidence: Confidence) {
+                           @BeanProperty var score: Score) {
 
   def this() = this("", false, 0)
 

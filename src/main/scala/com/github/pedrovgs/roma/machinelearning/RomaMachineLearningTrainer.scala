@@ -15,16 +15,18 @@ object RomaMachineLearningTrainer extends SparkApp with Resources {
   override val appName = "RomaMachineLearningTrainer"
 
   override def main(args: Array[String]): Unit = {
+    super.main(args)
     val config = ConfigLoader.loadMachineLearningTrainingConfig()
     config match {
       case Some(machineLearningConfig) => trainModel(machineLearningConfig)
-      case None                        => print("Review your machine learning configuration inside the file application.conf")
+      case None => print("Review your machine learning configuration inside the file application.conf")
     }
   }
 
   private def trainModel(machineLearningConfig: MachineLearningConfig) = {
     val (trainingTweets, testingTweets) = readCorpusTweetsAndExtractFeatures
-    val model                           = trainSvmModel(trainingTweets, machineLearningConfig)
+    val model = trainSvmModel(trainingTweets, machineLearningConfig)
+    saveModel(model, machineLearningConfig)
     measureTraining(model, trainingTweets, "TRAINING TWEETS")
     measureTraining(model, testingTweets, "TESTING TWEETS")
     classifySomeTweets(model)
@@ -53,7 +55,7 @@ object RomaMachineLearningTrainer extends SparkApp with Resources {
         .count() + " training tweets.")
 
     val labeledPoints: RDD[LabeledPoint] = toLabeledPoints(tweets)
-    val model                            = SVMWithSGD.train(labeledPoints, numberOfIterations)
+    val model = SVMWithSGD.train(labeledPoints, numberOfIterations)
     model.clearThreshold()
     print("Model trained properly!")
     model
@@ -69,17 +71,17 @@ object RomaMachineLearningTrainer extends SparkApp with Resources {
       (score, label)
     }
     smallSeparator()
-    val scores   = scoresAndLabels.map(_._1).cache()
-    val labels   = scoresAndLabels.map(_._2).cache()
+    val scores = scoresAndLabels.map(_._1).cache()
+    val labels = scoresAndLabels.map(_._2).cache()
     val minScore = scores.min()
     print("Min score -> " + minScore)
     val maxScore = scores.max()
     print("Max score -> " + maxScore)
     val positiveValuesAcc = sparkContext.longAccumulator
     val negativeValuesAcc = sparkContext.longAccumulator
-    val truePositivesAcc  = sparkContext.longAccumulator
+    val truePositivesAcc = sparkContext.longAccumulator
     val falsePositivesAcc = sparkContext.longAccumulator
-    val trueNegativesAcc  = sparkContext.longAccumulator
+    val trueNegativesAcc = sparkContext.longAccumulator
     val falseNegativesAcc = sparkContext.longAccumulator
     scoresAndLabels.foreach {
       case (score, label) => {
@@ -99,9 +101,9 @@ object RomaMachineLearningTrainer extends SparkApp with Resources {
         }
       }
     }
-    val sumTruePositives                 = truePositivesAcc.value + falseNegativesAcc.value
-    val sumTrueNegatives                 = trueNegativesAcc.value + falsePositivesAcc.value
-    val sumTotal                         = sumTrueNegatives + sumTruePositives
+    val sumTruePositives = truePositivesAcc.value + falseNegativesAcc.value
+    val sumTrueNegatives = trueNegativesAcc.value + falsePositivesAcc.value
+    val sumTotal = sumTrueNegatives + sumTruePositives
     val percentageOfWellClassifiedTweets = (truePositivesAcc.value.toDouble / sumTotal.toDouble) * 100.0 + (trueNegativesAcc.value.toDouble / sumTotal.toDouble) * 100.0
     print("Positive scores -> " + positiveValuesAcc.value)
     print("Positive labels -> " + labels.filter(_ == 1.0).count())
@@ -113,7 +115,7 @@ object RomaMachineLearningTrainer extends SparkApp with Resources {
   private def toLabeledPoints(tweets: DataFrame) = {
     val labeledPoints = tweets.rdd
       .map { row =>
-        val label    = row.getAs[Double](labelColumnName)
+        val label = row.getAs[Double](labelColumnName)
         val features = row.getAs[Vector](featuresColumnName)
         new LabeledPoint(label, features)
       }
@@ -141,10 +143,13 @@ object RomaMachineLearningTrainer extends SparkApp with Resources {
     val originalTweets = tweets.toDF(tweetContentColumnName)
     originalTweets.show()
     val tweetsPlusFeatures = FeaturesExtractor.extract(originalTweets)
-    val classifiedTweets   = TweetsClassifier.classify(sqlContext, model, tweetsPlusFeatures)
+    val classifiedTweets = TweetsClassifier.classify(sqlContext, model, tweetsPlusFeatures)
     print("Classification finished. Remember:")
     print(" - Class NEGATIVE : Angry tweet")
     print(" - Class POSITIVE : Happy tweet")
   }
 
+  def saveModel(model: SVMModel, config: MachineLearningConfig) = {
+    model.save(sparkContext, config.outputFolder + config.modelFileName)
+  }
 }

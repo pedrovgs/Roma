@@ -4,10 +4,10 @@ import com.github.pedrovgs.roma.ClassifiedTweet
 
 import scala.concurrent.Future
 
-class TweetsStorage(val firebase: Firebase) {
+object TweetsStorage {
 
   def saveTweets(tweets: Seq[ClassifiedTweet]): Future[Seq[ClassifiedTweet]] = {
-    firebase.save("/classifiedTweets", tweets)
+    Firebase.save("/classifiedTweets", tweets)
   }
 
 }

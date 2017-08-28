@@ -2,8 +2,8 @@ package com.github.pedrovgs.roma
 
 object Console {
 
-  def print(string: String): Unit = {
-    println(scala.Console.CYAN + string + scala.Console.RESET)
+  def print(any: Any): Unit = {
+    println(scala.Console.CYAN + any + scala.Console.RESET)
   }
 
   def smallSeparator(): Unit = {

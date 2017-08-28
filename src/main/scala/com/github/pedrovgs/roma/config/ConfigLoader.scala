@@ -8,7 +8,7 @@ case class TwitterConfig(consumerKey: String, consumerSecret: String, accessToke
 
 case class FirebaseConfig(databaseUrl: String)
 
-case class MachineLearningConfig(numberOfIterations: Int, outputFolder: String)
+case class MachineLearningConfig(numberOfIterations: Int, outputFolder: String, modelFileName: String)
 
 object ConfigLoader {
 
@@ -35,7 +35,8 @@ object ConfigLoader {
     Try(
       MachineLearningConfig(
         config.getInt("roma.machineLearning.numberOfIterations"),
-        config.getString("roma.machineLearning.outputFolder")
+        config.getString("roma.machineLearning.outputFolder"),
+        config.getString("roma.machineLearning.modelFileName")
       )).toOption
   }
 
