@@ -38,7 +38,6 @@ private[roma] trait SparkApp extends App {
   }
 
   private def masterUrl(): String = {
-    Logger.getRootLogger.setLevel(Level.ERROR)
     val defaultMasterUrl = "local[*]"
     if (args == null || args.isEmpty) {
       defaultMasterUrl

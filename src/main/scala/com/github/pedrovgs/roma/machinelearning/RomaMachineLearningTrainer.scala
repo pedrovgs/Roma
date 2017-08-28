@@ -2,6 +2,7 @@ package com.github.pedrovgs.roma.machinelearning
 
 import com.github.pedrovgs.roma.Console._
 import com.github.pedrovgs.roma.TweetColumns._
+import com.github.pedrovgs.roma.config.{ConfigLoader, MachineLearningConfig}
 import com.github.pedrovgs.roma.{Resources, SparkApp}
 import org.apache.spark.mllib.classification.{SVMModel, SVMWithSGD}
 import org.apache.spark.mllib.linalg.Vector
@@ -13,11 +14,17 @@ object RomaMachineLearningTrainer extends SparkApp with Resources {
 
   override val appName = "RomaMachineLearningTrainer"
 
-  private val numberOfIterations: Int = 100
-
   override def main(args: Array[String]): Unit = {
+    val config = ConfigLoader.loadMachineLearningTrainingConfig()
+    config match {
+      case Some(machineLearningConfig) => trainModel(machineLearningConfig)
+      case None                        => print("Review your machine learning configuration inside the file application.conf")
+    }
+  }
+
+  private def trainModel(machineLearningConfig: MachineLearningConfig) = {
     val (trainingTweets, testingTweets) = readCorpusTweetsAndExtractFeatures
-    val model                           = trainSvmModel(trainingTweets)
+    val model                           = trainSvmModel(trainingTweets, machineLearningConfig)
     measureTraining(model, trainingTweets, "TRAINING TWEETS")
     measureTraining(model, testingTweets, "TESTING TWEETS")
     classifySomeTweets(model)
@@ -37,9 +44,10 @@ object RomaMachineLearningTrainer extends SparkApp with Resources {
     (trainingTweets, testingTweets)
   }
 
-  private def trainSvmModel(tweets: DataFrame) = {
+  private def trainSvmModel(tweets: DataFrame, machineLearningConfig: MachineLearningConfig) = {
     print("Training our Support Vector Machine model.")
     separator()
+    val numberOfIterations = machineLearningConfig.numberOfIterations
     print(
       "Training Support Vector Machine model with " + numberOfIterations + " number of iterations and " + tweets
         .count() + " training tweets.")

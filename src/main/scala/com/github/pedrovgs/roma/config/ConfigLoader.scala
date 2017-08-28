@@ -8,6 +8,8 @@ case class TwitterConfig(consumerKey: String, consumerSecret: String, accessToke
 
 case class FirebaseConfig(databaseUrl: String)
 
+case class MachineLearningConfig(numberOfIterations: Int, outputFolder: String)
+
 object ConfigLoader {
 
   private val config = ConfigFactory.load
@@ -27,6 +29,14 @@ object ConfigLoader {
       val databaseUrl = config.getString("roma.firebase.databaseUrl")
       FirebaseConfig(databaseUrl)
     }.toOption
+  }
+
+  def loadMachineLearningTrainingConfig(): Option[MachineLearningConfig] = {
+    Try(
+      MachineLearningConfig(
+        config.getInt("roma.machineLearning.numberOfIterations"),
+        config.getString("roma.machineLearning.outputFolder")
+      )).toOption
   }
 
 }
