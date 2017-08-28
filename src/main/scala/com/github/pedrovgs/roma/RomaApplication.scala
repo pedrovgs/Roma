@@ -95,6 +95,8 @@ object RomaApplication extends SparkApp with Resources {
     val svmModel  = SVMModel.load(sparkContext, modelPath)
     twitterStream(authorization)
       .filter(_.getLang == "en")
+      .filter(!_.isRetweet)
+      .filter(!_.getText.startsWith("RT"))
       .foreachRDD { rdd: RDD[Status] =>
         if (!rdd.isEmpty()) {
           val classifiedTweets: RDD[ClassifiedTweet] = classifyTweets(rdd, svmModel, machineLearningConfig)
