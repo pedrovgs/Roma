@@ -35,6 +35,8 @@ machineLearning {
   numberOfIterations = 100
   outputFolder = "./outputs/"
   modelFileName = "smvModel"
+  positiveThreshold = 0.3
+  negativeThreshold = -0.2
 }
 ```
 

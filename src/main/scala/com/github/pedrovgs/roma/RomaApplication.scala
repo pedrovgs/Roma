@@ -92,12 +92,12 @@ object RomaApplication extends SparkApp with Resources {
     print("Let's start reading tweets!")
     separator()
     val modelPath = getFilePath("/" + machineLearningConfig.modelFileName)
-    val svmModel = SVMModel.load(sparkContext, modelPath)
+    val svmModel  = SVMModel.load(sparkContext, modelPath)
     twitterStream(authorization)
       .filter(_.getLang == "en")
       .foreachRDD { rdd: RDD[Status] =>
         if (!rdd.isEmpty()) {
-          val classifiedTweets: RDD[ClassifiedTweet] = classifyTweets(rdd, svmModel)
+          val classifiedTweets: RDD[ClassifiedTweet] = classifyTweets(rdd, svmModel, machineLearningConfig)
           saveTweets(classifiedTweets)
           smallSeparator()
         }
@@ -107,29 +107,34 @@ object RomaApplication extends SparkApp with Resources {
     print("Application finished")
   }
 
-  private def classifyTweets(status: RDD[Status], svmModel: SVMModel): RDD[ClassifiedTweet] = {
+  private def classifyTweets(status: RDD[Status],
+                             svmModel: SVMModel,
+                             machineLearningConfig: MachineLearningConfig): RDD[ClassifiedTweet] = {
     import sqlContext.implicits._
     print("Let's analyze a bunch of tweets!")
-    val tweets = status.map { status =>
-      status.getText
-    }.toDF(TweetColumns.tweetContentColumnName)
+    val tweets = status
+      .map { status =>
+        status.getText
+      }
+      .toDF(TweetColumns.tweetContentColumnName)
     val featurizedTweets = FeaturesExtractor.extract(tweets)
     val classifiedTweets = TweetsClassifier.classify(sqlContext, svmModel, featurizedTweets)
     classifiedTweets.rdd
       .filter { row: Row =>
         val classScore = row.getAs[Double](TweetColumns.classificationColumnName)
-        classScore > 0.33 || classScore < -0.2
+        classScore >= machineLearningConfig.positiveThreshold || classScore < machineLearningConfig.negativeThreshold
       }
       .map { row =>
-        val content = row.getAs[String](TweetColumns.tweetContentColumnName)
-        val classScore = row.getAs[Double](TweetColumns.classificationColumnName)
+        val content       = row.getAs[String](TweetColumns.tweetContentColumnName)
+        val classScore    = row.getAs[Double](TweetColumns.classificationColumnName)
         val positiveTweet = classScore > 0
         ClassifiedTweet(content, positiveTweet, classScore)
       }
   }
 
   private def saveTweets(classifiedTweets: RDD[ClassifiedTweet]) = {
-    TweetsStorage.saveTweets(classifiedTweets.collect)
+    TweetsStorage
+      .saveTweets(classifiedTweets.collect)
       .onComplete {
         case Success(tweets) =>
           print("Tweets saved properly!")
