@@ -1,17 +1,78 @@
 # Roma [![Build Status](https://travis-ci.org/pedrovgs/Roma.svg?branch=master)](https://travis-ci.org/pedrovgs/Roma)
 
-[Apache Spark](https://spark.apache.org/) project written in [Scala](https://www.scala-lang.org/) used to perform real time sentiment analysis on top of Twitter's streaming API.
+Machine learning and big data project built on top of [Apache Spark](https://spark.apache.org/) and written in [Scala](https://www.scala-lang.org/). Roma performs a real time sentiment analysis using Twitter's streaming API as data source.
 
 ![SparkLogo](https://github.com/pedrovgs/SparkPlayground/raw/master/art/sparkLogo.png)
+
+## How does it work?
+
+**This project uses a machine learning algorithm named [Support Vector Machine](https://en.wikipedia.org/wiki/Support_vector_machine) combined with [Twitter Streaming API](https://dev.twitter.com/streaming/overview).** Using Twitter as input data and an already trained SVM model we can classify the incoming tweets into two different classess: ``positive`` and ``negative`` tweets. Content classified where the accuracy is not good enough, where we can't guarantee if the content is positive or negative, will not be classified. The classification result is persisted into [Firebase](https://firebase.google.com/).
+
+We can split the project project components into two main entities: 
+
+* ``RomaApplication``: Responsible of the streaming and real time tweets classification.
+* ``RomaMachineLearningTrainer``: Responsible of the machine learning training and calssification metrics analysis.
+
+Implementation details related to features extraction or the training process are quite interesting. We strongly recommend you to take a look at the implementation.
+
+### Real time classification
+
+Using [Spark Streaming API](https://spark.apache.org/streaming/) we've connected our application to the official Twitter Streaming API. **For every batch we use our already trained SVM Model to classify the streamed tweets as positive or negative**. Tweets classified as positive or negative are persisted into Firebase.
+
+The following screencast shows the console output during the classification process:
+
+![classificationScreencast](./art/classification.gif)
+
+The steps followed to classify tweets are:
+
+* Load the application configuration needed to initialize the project.
+* Configure the tweets stream using the Twitter OAuth configuration.
+* Load the Firebase connection and the already trained classification model.
+* For every batch of tweets we apply our SVM model to precit the classification. Tweets will be transformed into classified tweets.
+
+**As SVM is a binnary classification model and we need to discard some tweets if we can't consider them as positive or negative we've applied a threshold to the prediction score.**
+
+### Training
+
+As Support Vector Machine is a suppervised learning model we need to train it. To be able to generate an already trained model we need a corpus based on a training and testing tweets dataset already classified. Thanks to [Sentiment140](http://help.sentiment140.com/for-students/) **we've got a training dataset composed of 1.600.000 tweets into a GZIP file and a test dataset composed of 359 tweets.**
+
+The steps followed to train our model are:
+
+* Read the training and testing corpus.
+* Filter and tokenize tweets content to be able to extract features easily.
+* Extract tweet content features.
+* Train model.
+* Measure training result using our training and testing dataset.
+* Use the model to classify new tweets and save it.
+
+The following screenshots shows the console output shown during the training:
+
+* Features extraction:
+
+![featuresExtraction](./art/featuresExtraction.png)
+
+* Training process:
+
+![trainingProcess](./art/training.png)
+
+* Classification metrics:
+
+![classification](./art/classificationMetrics.png)
+
+**One important detail is related to the usage of [Apache Spark](https://spark.apache.org/mllib/). As we are using this big data and machine learning framework all the code related to the training or classification will be executed in parallel.**
+
+The current training accuracy is close to the 80 % based on Sentiment140 training and testing dataset. In the future we'd like to improve our model based on an improved training dataset and an improved features extraction.
 
 ## Build and test this project
 
 To build and test this project you can execute ``sbt test``. You can also use ``sbt`` interactive mode (you just have to execute ``sbt`` in your terminal) and then use the triggered execution to execute your tests using the following commands inside the interactive mode:
 
 ```
-~ test // Runs every test in your project
-~ test-only *AnySpec // Runs specs matching with the filter passed as param.
+~ test
+~ test-only *AnySpec
 ``` 
+
+If you just need to assemble the ``jar`` you have to sent to the Apache Spark cluster you can simply execute ``sbt assembly``. If you need to continously build the binary you can execute ``sbt`` to enter into the interactive mode and then execute ```~ assembly```.
 
 ## Configuration
 
@@ -44,6 +105,17 @@ You'll need to also add a new file named ``firebaseCredentials.json`` into the `
 
 You can get these credentials by creating a Twitter application [here](https://apps.twitter.com/) and a new Firebase application [here](https://console.firebase.google.com).
 
+## Trainig our SVM model
+
+If after some changes during the features extraction or the trainig dataset you need to generate the model saved again you can easily follow these steps:
+
+* Assembly the application executing ``sbt assembly``.
+* Run the training script ``./trainModel.sh``.
+* Review the classification metrics shown in the console logs.
+* Move the recently generated model into the resources folder.
+
+After the training process you'll see how a new folder named ``outputs/svmModel`` will appear and some classification metrics will be shown.
+
 ## Running on a cluster
 
 Spark applications are developed to run on a cluster. Before to run your app you need to generate a ``.jar`` file you can submit to Spark to be executed. You can generate the ``roma.jar`` file executing ``sbt assembly``. This will generate a binary file you can submit using ``spark-submit`` command. Ensure your local Spark version is ``Spark 2.1.1``. 
@@ -64,6 +136,11 @@ docker-compse up -d
 cd ..
 ./submitToDockerizedSpark.sh
 ```
+
+Contributors
+------------
+
+Thanks [Mª Asunción Jiménez Cordero](https://github.com/asuncionjc) for all your contributions to this project and support during the development. Your machine learning support and knowledge was the key to succes in this project.
 
 Developed By
 ------------
