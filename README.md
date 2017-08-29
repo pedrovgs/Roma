@@ -1,12 +1,10 @@
 # Roma [![Build Status](https://travis-ci.org/pedrovgs/Roma.svg?branch=master)](https://travis-ci.org/pedrovgs/Roma)
 
-Machine learning and big data project built on top of [Apache Spark](https://spark.apache.org/) and written in [Scala](https://www.scala-lang.org/). Roma performs a real time sentiment analysis using Twitter's streaming API as data source.
-
-![SparkLogo](https://github.com/pedrovgs/SparkPlayground/raw/master/art/sparkLogo.png)
+Machine learning and big data project built on top of [Apache Spark](https://spark.apache.org/) and written in [Scala](https://www.scala-lang.org/). Roma performs a real time sentiment analysis using Twitter's streaming API as data source. The classification result is persisted in Firebase.
 
 ## How does it work?
 
-**This project uses a machine learning algorithm named [Support Vector Machine](https://en.wikipedia.org/wiki/Support_vector_machine) combined with [Twitter Streaming API](https://dev.twitter.com/streaming/overview).** Using Twitter as input data and an already trained SVM model we can classify the incoming tweets into two different classess: ``positive`` and ``negative`` tweets. Content classified where the accuracy is not good enough, where we can't guarantee if the content is positive or negative, will not be classified. The classification result is persisted into [Firebase](https://firebase.google.com/).
+**This project uses a machine learning algorithm named [Support Vector Machine](https://en.wikipedia.org/wiki/Support_vector_machine) combined with [Twitter Streaming API](https://dev.twitter.com/streaming/overview).** Using Twitter as input data and an already trained SVM model we can classify the incoming tweets into two different classess: ``positive`` and ``negative``. Content classified where the accuracy is not good enough, where we can't guarantee if the content is positive or negative, will not be classified. The classification result is persisted into [Firebase](https://firebase.google.com/).
 
 We can split the project project components into two main entities: 
 
@@ -28,19 +26,19 @@ The steps followed to classify tweets are:
 * Load the application configuration needed to initialize the project.
 * Configure the tweets stream using the Twitter OAuth configuration.
 * Load the Firebase connection and the already trained classification model.
-* For every batch of tweets we apply our SVM model to precit the classification. Tweets will be transformed into classified tweets.
+* For every batch of tweets we apply our SVM model to predict the classification. Tweets will be transformed into classified tweets.
 
-**As SVM is a binnary classification model and we need to discard some tweets if we can't consider them as positive or negative we've applied a threshold to the prediction score.**
+**As SVM is a binary classification model and we need to discard some tweets and we can't always guarantee if the content is positive or negative we've applied a threshold to the prediction score generated as the result of the Support Vector Machine prediction.**
 
 ### Training
 
-As Support Vector Machine is a suppervised learning model we need to train it. To be able to generate an already trained model we need a corpus based on a training and testing tweets dataset already classified. Thanks to [Sentiment140](http://help.sentiment140.com/for-students/) **we've got a training dataset composed of 1.600.000 tweets into a GZIP file and a test dataset composed of 359 tweets.**
+As Support Vector Machine is a supervised learning model we need to train it. To be able to generate an already trained model we need a corpus based on a training and testing tweets datasets already classified. Thanks to [Sentiment140](http://help.sentiment140.com/for-students/) **we've got a training dataset composed of 1.600.000 tweets into a GZIP file and a test dataset composed of 359 tweets.**
 
 The steps followed to train our model are:
 
-* Read the training and testing corpus.
+* Read the training and testing dataset.
 * Filter and tokenize tweets content to be able to extract features easily.
-* Extract tweet content features.
+* Extract tweet features.
 * Train model.
 * Measure training result using our training and testing dataset.
 * Use the model to classify new tweets and save it.
@@ -61,7 +59,7 @@ The following screenshots shows the console output shown during the training:
 
 **One important detail is related to the usage of [Apache Spark](https://spark.apache.org/mllib/). As we are using this big data and machine learning framework all the code related to the training or classification will be executed in parallel.**
 
-The current training accuracy is close to the 80 % based on Sentiment140 training and testing dataset. In the future we'd like to improve our model based on an improved training dataset and an improved features extraction.
+The current training accuracy is close to the 80 % based on Sentiment140 training and testing datasets. In the future we'd like to improve our model based on an improved training dataset and an improved features extraction.
 
 ## Build and test this project
 
@@ -140,7 +138,7 @@ cd ..
 Contributors
 ------------
 
-Thanks [Mª Asunción Jiménez Cordero](https://github.com/asuncionjc) for all your contributions to this project and support during the development. Your machine learning support and knowledge was the key to succes in this project.
+Thanks [Mª Asunción Jiménez Cordero](https://github.com/asuncionjc) for all your contributions to this project and support during the development. Your machine learning support and knowledge was the key to success in this project.
 
 Developed By
 ------------
