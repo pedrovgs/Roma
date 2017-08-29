@@ -9,4 +9,6 @@ object Versions {
   val sparkStreamingTwitter = "2.1.1"
   val config = "1.3.1"
   val firebase = "3.0.3"
+  val emojiJava = "3.3.0"
+
 }

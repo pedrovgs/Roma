@@ -3,6 +3,7 @@ package com.github.pedrovgs.roma.machinelearning
 import com.github.pedrovgs.roma.Console._
 import com.github.pedrovgs.roma.extensions.StringExtension._
 import com.github.pedrovgs.roma.TweetColumns._
+import com.vdurmont.emoji.EmojiParser
 import org.apache.spark.ml.feature.{HashingTF, IDF, StopWordsRemover}
 import org.apache.spark.mllib.util.MLUtils
 import org.apache.spark.sql.DataFrame
@@ -31,6 +32,7 @@ object FeaturesExtractor {
       .split(" ")
       .filterNot(_.startsWith("@"))
       .filterNot(_.startsWith("http"))
+      .map(EmojiParser.removeAllEmojis)
       .map(_.replaceAll("#", ""))
       .map(_.removeConsecutiveChars())
       .map(_.replaceAll("\\p{P}(?=\\s|$)", ""))
