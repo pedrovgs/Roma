@@ -32,7 +32,7 @@ The steps followed to classify tweets are:
 
 ### Training
 
-As Support Vector Machine is a supervised learning model we need to train it. To be able to generate an already trained model we need a corpus based on a training and testing tweets datasets already classified. Thanks to [Sentiment140](http://help.sentiment140.com/for-students/) **we've got a training dataset composed of 1.600.000 tweets into a GZIP file and a test dataset composed of 359 tweets.**
+As Support Vector Machine is a supervised classification model we need to train it. To be able to generate an already trained model we need a corpus based on a training and testing tweets datasets already classified. Thanks to [Sentiment140](http://help.sentiment140.com/for-students/) **we've got a training dataset composed of 1.600.000 tweets into a GZIP file and a test dataset composed of 359 tweets.**
 
 The steps followed to train our model are:
 
@@ -40,8 +40,8 @@ The steps followed to train our model are:
 * Filter and tokenize tweets content to be able to extract features easily.
 * Extract tweet features.
 * Train model.
-* Measure training result using our training and testing dataset.
-* Use the model to classify new tweets and save it.
+* Measure classification results using our testing dataset.
+* Save the model and use it to classify new tweets.
 
 The following screenshots shows the console output shown during the training:
 
