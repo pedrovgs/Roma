@@ -1,0 +1,17 @@
+# humanstxt.org/
+# The humans responsible & technology colophon
+
+# TEAM
+
+    Mª Asunción Jiménez Cordero -- Machine learning expert -- https://github.com/asuncionjc
+    Pedro Vicente Gómez Sánchez -- Core contributor -- https://github.com/pedrovgs
+
+
+# THANKS
+
+    Thanks to Mª Asunción Jiménez Cordero for all your contributions to this project and support during the development. Your machine learning support and knowledge was the key to success in this project.
+
+# TECHNOLOGY COLOPHON
+
+    CSS3, HTML5
+    Apache Server Configs, jQuery, Modernizr, MaterializeCSS.css, Firebase
