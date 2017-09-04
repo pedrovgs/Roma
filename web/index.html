@@ -1,30 +1,86 @@
 <!doctype html>
-<html class="no-js" lang="">
-    <head>
-        <meta charset="utf-8">
-        <meta http-equiv="x-ua-compatible" content="ie=edge">
-        <title></title>
-        <meta name="description" content="">
-        <meta name="viewport" content="width=device-width, initial-scale=1">
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="x-ua-compatible" content="ie=edge">
+    <title>Projct Roma</title>
+    <meta name="description"
+          content="Spark project written in Scala used to perform real time sentiment analysis on top of Twitter's streaming API">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
 
-        <link rel="manifest" href="site.webmanifest">
-        <link rel="apple-touch-icon" href="icon.png">
-        <!-- Place favicon.ico in the root directory -->
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/materialize/0.100.2/css/materialize.min.css">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+</head>
+<body>
+<h1 class="header center blue-grey-text">Project Roma</h1>
+<h5 class="center-align blue-grey-text">Let's measure how many positive or negative tweets are published around the world!</h5>
 
-        <link rel="stylesheet" href="css/normalize.css">
-        <link rel="stylesheet" href="css/main.css">
-    </head>
-    <body>
-        <!--[if lte IE 9]>
-            <p class="browserupgrade">You are using an <strong>outdated</strong> browser. Please <a href="https://browsehappy.com/">upgrade your browser</a> to improve your experience and security.</p>
-        <![endif]-->
 
-        <!-- Add your site or application content here -->
 
-        <p>Hello world! This is Roma.</p>
-        <script src="js/vendor/modernizr-3.5.0.min.js"></script>
-        <script src="https://code.jquery.com/jquery-3.2.1.min.js" integrity="sha256-hwg4gsxgFZhOsEEamdOYGBf13FyQuiTwlAQgxVSNgt4=" crossorigin="anonymous"></script>
-        <script>window.jQuery || document.write('<script src="js/vendor/jquery-3.2.1.min.js"><\/script>')</script>
-        <script src="js/main.js"></script>
-    </body>
+<footer class="page-footer blue">
+    <div class="container">
+        <div class="row">
+            <div class="col l6 s12">
+                <h5 class="white-text">Project Roma</h5>
+                <p class="grey-text text-lighten-4">Machine learning and big data project built on top of <a
+                    class="grey-text text-lighten-3" href="https://spark.apache.org">Apache Spark</a> and written in <a
+                    class="grey-text text-lighten-3" href="https://www.scala-lang.org/">Scala</a>. Roma performs a real
+                    time sentiment analysis using Twitter's streaming API as data source. The classification result is
+                    persisted in <a class="grey-text text-lighten-3" href="https://firebase.google.com">Firebase</a>.
+                </p>
+                <p>You can find the source code in <a class="grey-text text-lighten-3"
+                                                      href="https://github.com/pedrovgs/roma">this GitHub Repository</a>
+                </p>
+            </div>
+            <div class="col l4 offset-l2 s12">
+                <h5 class="white-text">Core Contributors</h5>
+                <ul>
+                    <li><a class="grey-text text-lighten-3" href="https://github.com/asuncionjc">Mª Asunción Jiménez
+                        Cordero</a></li>
+                    <li><a class="grey-text text-lighten-3" href="https://github.com/pedrovgs">Pedro Vicente Gómez
+                        Sánchez</a></li>
+                </ul>
+            </div>
+        </div>
+    </div>
+    <div class="footer-copyright">
+        <div class="container">
+            © 2016 Copyright Pedro Vicente Gómez Sánchez
+        </div>
+    </div>
+</footer>
+
+<script src="js/vendor/modernizr-3.5.0.min.js"></script>
+<script src="https://code.jquery.com/jquery-3.2.1.min.js"
+        integrity="sha256-hwg4gsxgFZhOsEEamdOYGBf13FyQuiTwlAQgxVSNgt4=" crossorigin="anonymous"></script>
+<script>window.jQuery || document.write('<script src="js/vendor/jquery-3.2.1.min.js"><\/script>')</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/materialize/0.100.2/js/materialize.min.js"></script>
+<script src="https://www.gstatic.com/firebasejs/4.3.0/firebase.js"></script>
+<script src="https://www.gstatic.com/firebasejs/4.2.0/firebase-database.js"></script>
+<script>
+    var config = {
+        apiKey: "AIzaSyAeaHrdRhosNV3LWFJiopBtWLqt3QZ7JBU",
+        authDomain: "roma-3f234.firebaseapp.com",
+        databaseURL: "https://roma-3f234.firebaseio.com",
+        projectId: "roma-3f234",
+        storageBucket: "roma-3f234.appspot.com",
+        messagingSenderId: "959150545251"
+    };
+    firebase.initializeApp(config);
+    console.log("Firebase initialized");
+    var database = firebase.database();
+    database.ref('classifiedTweets').on('child_added', function(snapshot) {
+        console.log("On value added to classifiedTweets reference");
+        var tweet = snapshot.val()
+        console.log(tweet.content);
+    });
+    database.ref("classifiedTweets").once('value').then(function(snapshot) {
+        console.log("Once value read from classifiedTweets");
+        console.log(snapshot.val());
+        //console.log(snapshot.val()[0]["content"]);
+    });
+</script>
+<script src="js/main.js"></script>
+</body>
 </html>
