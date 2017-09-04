@@ -3,10 +3,9 @@ package com.github.pedrovgs.roma
 import com.github.pedrovgs.roma.Console._
 import com.github.pedrovgs.roma.config.{ConfigLoader, FirebaseConfig, MachineLearningConfig, TwitterConfig}
 import com.github.pedrovgs.roma.machinelearning.{FeaturesExtractor, TweetsClassifier}
-import com.github.pedrovgs.roma.storage.{Firebase, TweetsStorage}
+import com.github.pedrovgs.roma.storage.TweetsStorage
 import org.apache.spark.mllib.classification.SVMModel
 import org.apache.spark.rdd.RDD
-import org.apache.spark.sql.Row
 import org.apache.spark.streaming.twitter.TwitterUtils
 import twitter4j.Status
 import twitter4j.auth.{Authorization, OAuthAuthorization}
@@ -92,7 +91,7 @@ object RomaApplication extends SparkApp with Resources {
     print("Let's start reading tweets!")
     separator()
     val modelPath = getFilePath("/" + machineLearningConfig.modelFileName)
-    val svmModel  = SVMModel.load(sparkContext, modelPath)
+    val svmModel = SVMModel.load(sparkContext, modelPath)
     twitterStream(authorization)
       .filter(_.getLang == "en")
       .filter(!_.isRetweet)
@@ -122,15 +121,13 @@ object RomaApplication extends SparkApp with Resources {
     val featurizedTweets = FeaturesExtractor.extract(tweets)
     val classifiedTweets = TweetsClassifier.classify(sqlContext, svmModel, featurizedTweets)
     classifiedTweets.rdd
-      .filter { row: Row =>
-        val classScore = row.getAs[Double](TweetColumns.classificationColumnName)
-        classScore >= machineLearningConfig.positiveThreshold || classScore < machineLearningConfig.negativeThreshold
-      }
       .map { row =>
-        val content       = row.getAs[String](TweetColumns.tweetContentColumnName)
-        val classScore    = row.getAs[Double](TweetColumns.classificationColumnName)
-        val positiveTweet = classScore > 0
-        ClassifiedTweet(content, positiveTweet, classScore)
+        val content = row.getAs[String](TweetColumns.tweetContentColumnName)
+        val classScore = row.getAs[Double](TweetColumns.classificationColumnName)
+        val sentiment = if (classScore <= machineLearningConfig.positiveThreshold && classScore >= machineLearningConfig.negativeThreshold) Sentiment.Neutral
+        else if (classScore > machineLearningConfig.positiveThreshold) Sentiment.Positive
+        else Sentiment.Negative
+        ClassifiedTweet(content, sentiment.toString, classScore)
       }
   }
 
