@@ -3,7 +3,7 @@ package com.github.pedrovgs.roma
 import com.github.pedrovgs.roma.Console._
 import com.github.pedrovgs.roma.config.{ConfigLoader, FirebaseConfig, MachineLearningConfig, TwitterConfig}
 import com.github.pedrovgs.roma.machinelearning.{FeaturesExtractor, TweetsClassifier}
-import com.github.pedrovgs.roma.storage.TweetsStorage
+import com.github.pedrovgs.roma.storage.{StatsStorage, TweetsStorage}
 import org.apache.spark.mllib.classification.SVMModel
 import org.apache.spark.rdd.RDD
 import org.apache.spark.streaming.twitter.TwitterUtils
@@ -29,10 +29,9 @@ object RomaApplication extends SparkApp with Resources {
     val machineLearningConfig = loadMachineLearningConfig()
     smallSeparator()
     (firebaseCredentials, twitterCredentials, machineLearningConfig) match {
-      case (Some(_), Some(twitterConfig), Some(machineLearningConfig)) => {
+      case (Some(_), Some(twitterConfig), Some(mlConfig)) =>
         val authorization = authorizeTwitterStream(twitterConfig)
-        startStreaming(authorization, machineLearningConfig)
-      }
+        startStreaming(authorization, mlConfig)
       case _ => print("Finishing application")
     }
   }
@@ -91,7 +90,7 @@ object RomaApplication extends SparkApp with Resources {
     print("Let's start reading tweets!")
     separator()
     val modelPath = getFilePath("/" + machineLearningConfig.modelFileName)
-    val svmModel = SVMModel.load(sparkContext, modelPath)
+    val svmModel  = SVMModel.load(sparkContext, modelPath)
     twitterStream(authorization)
       .filter(_.getLang == "en")
       .filter(!_.isRetweet)
@@ -100,6 +99,7 @@ object RomaApplication extends SparkApp with Resources {
         if (!rdd.isEmpty()) {
           val classifiedTweets: RDD[ClassifiedTweet] = classifyTweets(rdd, svmModel, machineLearningConfig)
           saveTweets(classifiedTweets)
+          updateStats(classifiedTweets)
           smallSeparator()
         }
       }
@@ -122,11 +122,13 @@ object RomaApplication extends SparkApp with Resources {
     val classifiedTweets = TweetsClassifier.classify(sqlContext, svmModel, featurizedTweets)
     classifiedTweets.rdd
       .map { row =>
-        val content = row.getAs[String](TweetColumns.tweetContentColumnName)
+        val content    = row.getAs[String](TweetColumns.tweetContentColumnName)
         val classScore = row.getAs[Double](TweetColumns.classificationColumnName)
-        val sentiment = if (classScore <= machineLearningConfig.positiveThreshold && classScore >= machineLearningConfig.negativeThreshold) Sentiment.Neutral
-        else if (classScore > machineLearningConfig.positiveThreshold) Sentiment.Positive
-        else Sentiment.Negative
+        val sentiment =
+          if (classScore <= machineLearningConfig.positiveThreshold && classScore >= machineLearningConfig.negativeThreshold)
+            Sentiment.Neutral
+          else if (classScore > machineLearningConfig.positiveThreshold) Sentiment.Positive
+          else Sentiment.Negative
         ClassifiedTweet(content, sentiment.toString, classScore)
       }
   }
@@ -139,6 +141,17 @@ object RomaApplication extends SparkApp with Resources {
           print("Tweets saved properly!")
           tweets.foreach(print(_))
         case Failure(_) => print("Error saving tweets :_(")
+      }
+  }
+
+  private def updateStats(classifiedTweets: RDD[ClassifiedTweet]) = {
+    StatsStorage
+      .updateStats(classifiedTweets.collect())
+      .onComplete {
+        case Success(Some(stats)) =>
+          print("Classified tweet stats properly!")
+          print(stats)
+        case _ => print("Error updating stats :_(")
       }
   }
 }

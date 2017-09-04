@@ -6,7 +6,7 @@ import scala.beans.BeanProperty
 
 object model {
   type Content = String
-  type Score = Double
+  type Score   = Double
 }
 
 class FirebaseError extends Throwable
@@ -22,4 +22,28 @@ case class ClassifiedTweet(@BeanProperty var content: Content,
 
   def this() = this("", Sentiment.Neutral.toString, 0)
 
+}
+
+case class ClassificationStats(@BeanProperty var totalNumberOfClassifiedTweets: Long,
+                               @BeanProperty var totalNumberOfPositiveTweets: Long,
+                               @BeanProperty var totalNumberOfNegativeTweets: Long,
+                               @BeanProperty var totalNumberOfNeutralTweets: Long) {
+
+  def this() = this(0, 0, 0, 0)
+
+  def combine(classificationStats: ClassificationStats): ClassificationStats = {
+    val newTotalTweets    = totalNumberOfClassifiedTweets + classificationStats.totalNumberOfClassifiedTweets
+    val newPositiveTweets = totalNumberOfPositiveTweets + classificationStats.totalNumberOfPositiveTweets
+    val negativeTweets    = totalNumberOfNegativeTweets + classificationStats.totalNumberOfNegativeTweets
+    val neutralTweets     = totalNumberOfNeutralTweets + classificationStats.totalNumberOfNeutralTweets
+    ClassificationStats(newTotalTweets, newPositiveTweets, negativeTweets, neutralTweets)
+  }
+}
+
+case class ClassificationSnapshotStat(@BeanProperty var numberOfClassifiedTweets: Long,
+                                      @BeanProperty var numberOfPositiveTweets: Long,
+                                      @BeanProperty var numberNegativeTweets: Long,
+                                      @BeanProperty var numberOfNeutralTweets: Long,
+                                      @BeanProperty var hour: Long) {
+  def this() = this(0, 0, 0, 0, 0)
 }

@@ -6,8 +6,7 @@ import scala.concurrent.Future
 
 object TweetsStorage {
 
-  def saveTweets(tweets: Seq[ClassifiedTweet]): Future[Seq[ClassifiedTweet]] = {
-    Firebase.save("/classifiedTweets", tweets)
-  }
+  def saveTweets(tweets: Seq[ClassifiedTweet]): Future[Seq[ClassifiedTweet]] =
+    Firebase.save("/classifiedTweets", values = tweets)
 
 }
