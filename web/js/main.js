@@ -28,6 +28,14 @@ function initializeFirebase() {
     return firebase.database();
 }
 
+function hideLoading() {
+    document.getElementById("loader").style.display = 'none';
+}
+
+function showCharts() {
+    document.getElementById("charts").style.display = 'block';
+}
+
 function setUpClassifiedTweetsChart(database) {
     var classifiedTweets = new Chart(document.getElementById("positiveVsNegativeTweets"), {
         type: 'doughnut',
@@ -49,6 +57,8 @@ function setUpClassifiedTweetsChart(database) {
         options: null
     });
     database.ref('classifiedTweetsStats').on('value', function (snapshot) {
+        hideLoading();
+        showCharts();
         var stats = snapshot.val();
         var dataset = classifiedTweets.data.datasets[0];
         dataset.data.pop();

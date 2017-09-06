@@ -27,7 +27,20 @@
 <main>
     <h5 class="center-align blue-text">Let's measure how many positive or negative tweets are published around the
         world!</h5>
-    <div class="row section">
+    <div id="loader" class="loader center-align preloader-wrapper big active">
+        <div class="spinner-layer spinner-blue-only">
+            <div class="circle-clipper left">
+                <div class="circle"></div>
+            </div>
+            <div class="gap-patch">
+                <div class="circle"></div>
+            </div>
+            <div class="circle-clipper right">
+                <div class="circle"></div>
+            </div>
+        </div>
+    </div>
+    <div id="charts" class="row section" style="display:none">
         <div class="col s14 l3">
             <h6 class="center-align blue-text">Positive vs Negative Tweets</h6>
             <canvas id="positiveVsNegativeTweets"></canvas>
