@@ -3,6 +3,7 @@ package com.github.pedrovgs.roma.storage
 import com.github.pedrovgs.roma.FirebaseError
 import com.github.pedrovgs.roma.config.ConfigLoader
 import com.google.firebase.database._
+import com.google.firebase.tasks.Task
 import com.google.firebase.{FirebaseApp, FirebaseOptions}
 
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -47,7 +48,9 @@ object Firebase {
   def get[T](path: String, tyze: Class[T]): Future[Option[T]] = {
     val promise = Promise[Option[T]]
     ref(path).addListenerForSingleValueEvent(new ValueEventListener {
-      override def onCancelled(databaseError: DatabaseError): Unit = {}
+      override def onCancelled(databaseError: DatabaseError): Unit = {
+        promise.failure(databaseError.toException)
+      }
 
       override def onDataChange(dataSnapshot: DataSnapshot): Unit = {
         val value: T = dataSnapshot.getValue(tyze)
@@ -55,6 +58,10 @@ object Firebase {
       }
     })
     promise.future
+  }
+
+  def remove(path: String): Task[Void] = {
+    ref(path).removeValue()
   }
 
   FirebaseApp.initializeApp(options)
