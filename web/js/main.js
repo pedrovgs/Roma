@@ -2,12 +2,14 @@ const positiveColor = 'rgba(46, 160, 238, 1.0)';
 const negativeColor = 'rgba(255, 97, 130, 1.0)';
 const neutralColor = 'rgba(230, 230, 230, 1.0)'
 const borderColor = 'rgba(0, 0, 0, 0.2)';
+const borderWidth = 2
 const positiveTweetsLegendTag = 'Positive Tweets';
-const negativeTweetsLegendTag ='Negative Tweets';
+const negativeTweetsLegendTag = 'Negative Tweets';
 
 var database = initializeFirebase();
 setUpClassifiedTweetsChart(database);
 setNeutralUpClassifiedTweetsChart(database);
+setUpTweetsTimelineChart(database);
 
 function initializeFirebase() {
     var config = {
@@ -28,7 +30,6 @@ function setUpClassifiedTweetsChart(database) {
         data: {
             datasets: [{
                 label: 'Classified Tweets',
-                data: [50, 50],
                 backgroundColor: [
                     positiveColor,
                     negativeColor
@@ -37,14 +38,14 @@ function setUpClassifiedTweetsChart(database) {
                     borderColor,
                     borderColor
                 ],
-                borderWidth: 2
+                borderWidth: borderWidth
             }],
             labels: [positiveTweetsLegendTag, negativeTweetsLegendTag]
         },
         options: null
     });
     database.ref('classifiedTweetsStats').on('value', function (snapshot) {
-        var stats = snapshot.val()
+        var stats = snapshot.val();
         var dataset = classifiedTweets.data.datasets[0];
         dataset.data.pop();
         dataset.data.pop();
@@ -60,7 +61,7 @@ function setNeutralUpClassifiedTweetsChart(database) {
         data: {
             datasets: [{
                 label: 'Classified Tweets + Neutral Tweets',
-                data: [33, 33, 34],
+
                 backgroundColor: [
                     positiveColor,
                     negativeColor,
@@ -71,7 +72,7 @@ function setNeutralUpClassifiedTweetsChart(database) {
                     borderColor,
                     borderColor
                 ],
-                borderWidth: 2
+                borderWidth: borderWidth
             }],
             labels: ['Positive Tweets', 'Negative Tweets', 'Neutral Tweets']
         },
@@ -88,5 +89,47 @@ function setNeutralUpClassifiedTweetsChart(database) {
         dataset.data.push(stats['totalNumberOfNegativeTweets']);
         dataset.data.push(stats['totalNumberOfNeutralTweets']);
         classifiedTweets2.update(0);
+    });
+}
+
+function setUpTweetsTimelineChart(database) {
+    var stackedBar = new Chart(document.getElementById("positiveVsNegativeTweetsTimeline"), {
+        type: 'bar',
+        data: {
+            labels: ["h1", "h2", "h3"],
+            datasets: [{
+                label: "Positive Tweets",
+                data: [33],
+                backgroundColor: [
+                    positiveColor
+                ],
+                stack: "a",
+                borderColor: [
+                    borderColor
+                ],
+                borderWidth: borderWidth
+            },{
+                label: "Negative Tweets",
+                data: [50],
+                backgroundColor: [
+                    negativeColor
+                ],
+                stack: "a",
+                borderColor: [
+                    borderColor
+                ],
+                borderWidth: borderWidth
+            }],
+            options: {
+                scales: {
+                    xAxes: [{
+                        stacked: true
+                    }],
+                    yAxes: [{
+                        stacked: true
+                    }]
+                }
+            }
+        }
     });
 }
