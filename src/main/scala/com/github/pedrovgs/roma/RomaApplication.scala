@@ -98,7 +98,7 @@ object RomaApplication extends SparkApp with Resources {
       .foreachRDD { rdd: RDD[Status] =>
         if (!rdd.isEmpty()) {
           val classifiedTweets: RDD[ClassifiedTweet] = classifyTweets(rdd, svmModel, machineLearningConfig)
-          saveTweets(classifiedTweets)
+          saveTweets(classifiedTweets.filter(_.sentiment != Sentiment.Neutral.toString))
           updateStats(classifiedTweets)
           smallSeparator()
         }
