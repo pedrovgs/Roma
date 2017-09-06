@@ -1,10 +1,11 @@
 const positiveColor = 'rgba(46, 160, 238, 1.0)';
 const negativeColor = 'rgba(255, 97, 130, 1.0)';
-const neutralColor = 'rgba(230, 230, 230, 1.0)'
+const neutralColor = 'rgba(230, 230, 230, 1.0)';
 const borderColor = 'rgba(0, 0, 0, 0.2)';
-const borderWidth = 2
-const positiveTweetsLegendTag = 'Positive Tweets';
-const negativeTweetsLegendTag = 'Negative Tweets';
+const borderWidth = 2;
+const positiveTweetsLabel = 'Positive Tweets';
+const negativeTweetsLabel = 'Negative Tweets';
+const neutralTweetsLabel = 'Neutral Tweets';
 
 var database = initializeFirebase();
 setUpClassifiedTweetsChart(database);
@@ -40,7 +41,7 @@ function setUpClassifiedTweetsChart(database) {
                 ],
                 borderWidth: borderWidth
             }],
-            labels: [positiveTweetsLegendTag, negativeTweetsLegendTag]
+            labels: [positiveTweetsLabel, negativeTweetsLabel]
         },
         options: null
     });
@@ -74,12 +75,11 @@ function setNeutralUpClassifiedTweetsChart(database) {
                 ],
                 borderWidth: borderWidth
             }],
-            labels: ['Positive Tweets', 'Negative Tweets', 'Neutral Tweets']
+            labels: [positiveTweetsLabel, negativeTweetsLabel, neutralTweetsLabel]
         },
         options: null
     });
     database.ref('classifiedTweetsStats').on('value', function (snapshot) {
-        console.log("Stats changed..let's update the pie chart!");
         var stats = snapshot.val();
         var dataset = classifiedTweets2.data.datasets[0];
         dataset.data.pop();
@@ -93,28 +93,26 @@ function setNeutralUpClassifiedTweetsChart(database) {
 }
 
 function setUpTweetsTimelineChart(database) {
-    var stackedBar = new Chart(document.getElementById("positiveVsNegativeTweetsTimeline"), {
+    var stackedBar = new Chart(document.getElementById('positiveVsNegativeTweetsTimeline'), {
         type: 'bar',
         data: {
-            labels: ["h1", "h2", "h3"],
+            labels: ['h1', 'h2', 'h3'],
             datasets: [{
-                label: "Positive Tweets",
+                label: positiveTweetsLabel,
                 data: [33],
                 backgroundColor: [
                     positiveColor
                 ],
-                stack: "a",
                 borderColor: [
                     borderColor
                 ],
                 borderWidth: borderWidth
-            },{
-                label: "Negative Tweets",
+            }, {
+                label: negativeTweetsLabel,
                 data: [50],
                 backgroundColor: [
                     negativeColor
                 ],
-                stack: "a",
                 borderColor: [
                     borderColor
                 ],
