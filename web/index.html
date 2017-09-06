@@ -10,23 +10,34 @@
 
     <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/materialize/0.100.2/css/materialize.min.css">
+    <link rel="stylesheet" href="css/main.css">
     <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 </head>
 <body>
-<h1 class="header center blue-text">Project Roma</h1>
-<h5 class="center-align blue-text">Let's measure how many positive or negative tweets are published around the
-    world!</h5>
-<div class="row section">
-    <div class="col s12 l4">
-        <h5 class="center-align blue-text">Positive VS Negative Tweets</h5>
-        <canvas id="positiveVsNegativeTweets"></canvas>
+<nav>
+    <div class="nav-wrapper blue">
+        <a href="#" class="brand-logo right">Project Roma</a>
+        <ul id="nav-mobile" class="left hide-on-med-and-down">
+            <li><a href="https://github.com/pedrovgs/roma">GitHub Repository</a></li>
+            <li><a href="https://github.com/pedrovgs/roma#training">SVM Training Process</a></li>
+            <li><a href="https://github.com/pedrovgs/roma#contributors">Contributors</a></li>
+        </ul>
     </div>
-    <div class="col s12 l4">
-        <h5 class="center-align blue-text">Positive VS Negative VS Neutral Tweets</h5>
-        <canvas id="positiveVsNegativeVsNeutralTweets"></canvas>
+</nav>
+<main>
+    <h5 class="center-align blue-text">Let's measure how many positive or negative tweets are published around the
+        world!</h5>
+    <div class="row section">
+        <div class="col s12 l3">
+            <h6 class="center-align blue-text">Positive VS Negative Tweets</h6>
+            <canvas id="positiveVsNegativeTweets"></canvas>
+        </div>
+        <div class="col s14 l3">
+            <h6 class="center-align blue-text">Positive VS Negative VS Neutral Tweets</h6>
+            <canvas id="positiveVsNegativeVsNeutralTweets"></canvas>
+        </div>
     </div>
-</div>
-
+</main>
 <footer class="page-footer blue">
     <div class="container">
         <div class="row">
@@ -69,95 +80,6 @@
 <script src="https://www.gstatic.com/firebasejs/4.2.0/firebase-database.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.6.0/Chart.bundle.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.6.0/Chart.min.js"></script>
-<script>
-    var config = {
-        apiKey: "AIzaSyAeaHrdRhosNV3LWFJiopBtWLqt3QZ7JBU",
-        authDomain: "roma-3f234.firebaseapp.com",
-        databaseURL: "https://roma-3f234.firebaseio.com",
-        projectId: "roma-3f234",
-        storageBucket: "roma-3f234.appspot.com",
-        messagingSenderId: "959150545251"
-    };
-    firebase.initializeApp(config);
-    console.log("Firebase initialized");
-    var database = firebase.database();
-    database.ref('classifiedTweets').on('child_added', function (snapshot) {
-        console.log("On value added to classifiedTweets reference");
-        var tweet = snapshot.val()
-        console.log(tweet.content);
-    });
-    database.ref("classifiedTweets").once('value').then(function (snapshot) {
-        console.log("Once value read from classifiedTweets");
-        console.log(snapshot.val());
-    });
-    var ctx = document.getElementById("positiveVsNegativeTweets");
-    var classifiedTweets = new Chart(ctx, {
-        type: 'doughnut',
-        data: {
-            datasets: [{
-                label: 'Classified Tweets',
-                data: [50, 50],
-                backgroundColor: [
-                    'rgba(46, 160, 238, 1.0)', //Positive color
-                    'rgba(255, 97, 130, 1.0)' //Negative color
-                ],
-                borderColor: [
-                    'rgba(0, 0, 0, 0.2)',
-                    'rgba(0, 0, 0, 0.2)'
-                ],
-                borderWidth: 2
-            }],
-            labels: ['Positive Tweets', 'Negative Tweets']
-        },
-        options: null
-    });
-    database.ref('classifiedTweetsStats').on('value', function (snapshot) {
-        console.log("Stats changed..let's update the pie chart!");
-        var stats = snapshot.val()
-        var dataset = classifiedTweets.data.datasets[0];
-        dataset.data.pop();
-        dataset.data.pop();
-        dataset.data.pop();
-        dataset.data.push(stats['totalNumberOfPositiveTweets']);
-        dataset.data.push(stats['totalNumberOfNegativeTweets']);
-        classifiedTweets.update(0);
-    });
-
-    var ctx = document.getElementById("positiveVsNegativeVsNeutralTweets");
-    var classifiedTweets2 = new Chart(ctx, {
-        type: 'doughnut',
-        data: {
-            datasets: [{
-                label: 'Classified Tweets + Neutral Tweets',
-                data: [33, 33, 34],
-                backgroundColor: [
-                    'rgba(46, 160, 238, 1.0)', //Positive color
-                    'rgba(255, 97, 130, 1.0)', //Negative color
-                    'rgba(230, 230, 230, 1.0)', //Neutral color
-                ],
-                borderColor: [
-                    'rgba(0, 0, 0, 0.2)',
-                    'rgba(0, 0, 0, 0.2)'
-                ],
-                borderWidth: 2
-            }],
-            labels: ['Positive Tweets', 'Negative Tweets', 'Neutral Tweets']
-        },
-        options: null
-    });
-    database.ref('classifiedTweetsStats').on('value', function (snapshot) {
-        console.log("Stats changed..let's update the pie chart!");
-        var stats = snapshot.val();
-        var dataset = classifiedTweets2.data.datasets[0];
-        dataset.data.pop();
-        dataset.data.pop();
-        dataset.data.pop();
-        dataset.data.push(stats['totalNumberOfPositiveTweets']);
-        dataset.data.push(stats['totalNumberOfNegativeTweets']);
-        dataset.data.push(stats['totalNumberOfNeutralTweets']);
-        classifiedTweets2.update(0);
-    });
-</script>
 <script src="js/main.js"></script>
 </body>
 </html>
