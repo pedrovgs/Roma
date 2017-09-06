@@ -7,8 +7,13 @@ const positiveTweetsLabel = 'Positive Tweets';
 const negativeTweetsLabel = 'Negative Tweets';
 const neutralTweetsLabel = 'Neutral Tweets';
 const oneHourInMillis = 3600000;
+const oneSecondInMillis = 1000;
 const numberOfTimelineLabels = 12;
-const stackId = "stackId"
+const stackId = "stackId";
+const delayedRedrawInterval = 100;
+
+var initialPieChartUpdate = 0;
+var initialBarChartUpdate = 0;
 
 var database = initializeFirebase();
 setUpClassifiedTweetsChart(database);
@@ -36,6 +41,22 @@ function showCharts() {
     document.getElementById("charts").style.display = 'block';
 }
 
+function updateLastInitialPieChartUpdate() {
+    initialPieChartUpdate = new Date().getTime();
+}
+
+function updateLastInitialBarChartUpdate() {
+    initialBarChartUpdate = new Date().getTime();
+}
+
+function canUpdatePieCharts() {
+    return new Date().getTime() - initialPieChartUpdate > oneSecondInMillis;
+}
+
+function canUpdateBarCharts() {
+    return new Date().getTime() - initialBarChartUpdate > oneSecondInMillis;
+}
+
 function setUpClassifiedTweetsChart(database) {
     var classifiedTweets = new Chart(document.getElementById("positiveVsNegativeTweets"), {
         type: 'doughnut',
@@ -57,20 +78,34 @@ function setUpClassifiedTweetsChart(database) {
         options: null
     });
     database.ref('classifiedTweetsStats').on('value', function (snapshot) {
+        if (!canUpdatePieCharts()) {
+            return;
+        }
         hideLoading();
         showCharts();
+        var oldData = classifiedTweets.data.datasets[0].data;
+        var isFirstUpdate = oldData === undefined || oldData.length === 0;
         var stats = snapshot.val();
         var dataset = classifiedTweets.data.datasets[0];
-        dataset.data.pop();
-        dataset.data.pop();
-        dataset.data.push(stats['numberOfPositiveTweets']);
-        dataset.data.push(stats['numberOfNegativeTweets']);
-        classifiedTweets.update(0);
+        if (isFirstUpdate) {
+            updateLastInitialPieChartUpdate();
+            setTimeout(function () {
+                dataset.data.push(stats['numberOfPositiveTweets']);
+                dataset.data.push(stats['numberOfNegativeTweets']);
+                classifiedTweets.update();
+            }, delayedRedrawInterval);
+        } else {
+            dataset.data.pop();
+            dataset.data.pop();
+            dataset.data.push(stats['numberOfPositiveTweets']);
+            dataset.data.push(stats['numberOfNegativeTweets']);
+            classifiedTweets.update(0);
+        }
     });
 }
 
 function setNeutralUpClassifiedTweetsChart(database) {
-    var classifiedTweets2 = new Chart(document.getElementById("positiveVsNegativeVsNeutralTweets"), {
+    var classifiedAndNeutralTweets = new Chart(document.getElementById("positiveVsNegativeVsNeutralTweets"), {
         type: 'doughnut',
         data: {
             datasets: [{
@@ -94,14 +129,25 @@ function setNeutralUpClassifiedTweetsChart(database) {
     });
     database.ref('classifiedTweetsStats').on('value', function (snapshot) {
         var stats = snapshot.val();
-        var dataset = classifiedTweets2.data.datasets[0];
-        dataset.data.pop();
-        dataset.data.pop();
-        dataset.data.pop();
-        dataset.data.push(stats['numberOfPositiveTweets']);
-        dataset.data.push(stats['numberOfNegativeTweets']);
-        dataset.data.push(stats['numberOfNeutralTweets']);
-        classifiedTweets2.update(0);
+        var dataset = classifiedAndNeutralTweets.data.datasets[0];
+        var oldData = dataset.data;
+        var isFirstUpdate = oldData === undefined || oldData.length === 0;
+        if (isFirstUpdate) {
+            setTimeout(function () {
+                dataset.data.push(stats['numberOfPositiveTweets']);
+                dataset.data.push(stats['numberOfNegativeTweets']);
+                dataset.data.push(stats['numberOfNeutralTweets']);
+                classifiedAndNeutralTweets.update();
+            }, delayedRedrawInterval);
+        } else {
+            dataset.data.pop();
+            dataset.data.pop();
+            dataset.data.pop();
+            dataset.data.push(stats['numberOfPositiveTweets']);
+            dataset.data.push(stats['numberOfNegativeTweets']);
+            dataset.data.push(stats['numberOfNeutralTweets']);
+            classifiedAndNeutralTweets.update(0);
+        }
     });
 }
 
@@ -143,26 +189,39 @@ function setUpTweetsTimelineChart(database) {
     });
 
     function updateStackedBarChart(stackedBar, snapshot) {
+        if (!canUpdateBarCharts()) {
+            return;
+        }
         var snapshotHour = snapshot.hour;
         var labels = stackedBar.data.labels;
+        var isFirstUpdate = labels === undefined || labels.length === 0;
         var positiveTweets = stackedBar.data.datasets[0];
         var negativeTweets = stackedBar.data.datasets[1];
         var labelName = calculateSnapshotLabel(snapshot);
         if (!labels.includes(labelName)) {
             labels.push(labelName);
+        }
+        if (isFirstUpdate) {
+            updateLastInitialBarChartUpdate();
+            setTimeout(function () {
+                positiveTweets.data.push(snapshot.stats['numberOfPositiveTweets']);
+                negativeTweets.data.push(snapshot.stats['numberOfNegativeTweets']);
+                stackedBar.update();
+            }, delayedRedrawInterval);
         } else {
             positiveTweets.data.pop();
             negativeTweets.data.pop();
+            positiveTweets.data.push(snapshot.stats['numberOfPositiveTweets']);
+            negativeTweets.data.push(snapshot.stats['numberOfNegativeTweets']);
+            stackedBar.update(0);
         }
-        positiveTweets.data.push(snapshot.stats['numberOfPositiveTweets']);
-        negativeTweets.data.push(snapshot.stats['numberOfNegativeTweets']);
-        stackedBar.update(0);
+
     }
 
     function calculateSnapshotLabel(snapshot) {
         var snapshotDate = new Date(snapshot.hour * oneHourInMillis);
         var snapshotStartHour = snapshotDate.getHours();
         var nextHour = (snapshotStartHour + 1) % 24;
-        return snapshotStartHour+":00" + " to " + nextHour+":00";
+        return snapshotStartHour + ":00" + " to " + nextHour + ":00";
     }
 }
