@@ -9,6 +9,7 @@ const neutralTweetsLabel = 'Neutral Tweets';
 const oneHourInMillis = 3600000;
 const oneSecondInMillis = 1000;
 const numberOfTimelineLabels = 12;
+const numberOfTweeetsInTable = 5;
 const stackId = "stackId";
 const delayedRedrawInterval = 100;
 
@@ -19,6 +20,7 @@ var database = initializeFirebase();
 setUpClassifiedTweetsChart(database);
 setNeutralUpClassifiedTweetsChart(database);
 setUpTweetsTimelineChart(database);
+setUpTweetsTable(database);
 
 function initializeFirebase() {
     var config = {
@@ -224,4 +226,20 @@ function setUpTweetsTimelineChart(database) {
         var nextHour = (snapshotStartHour + 1) % 24;
         return snapshotStartHour + ":00" + " to " + nextHour + ":00";
     }
+}
+
+function setUpTweetsTable(database) {
+    database.ref('classifiedTweets').limitToLast(numberOfTweeetsInTable).on('child_added', function (snapshot) {
+        console.log("asdfasdfasdfasf")
+        var tweet = snapshot.val();
+        var table = document.getElementById("tweets");
+        var row = table.insertRow();
+        row.insertCell().innerHTML = tweet['content'];
+        row.insertCell().innerHTML = tweet['sentiment'];
+        row.insertCell().innerHTML = tweet['score'];
+        if (table.rows.length >= numberOfTweeetsInTable) {
+            console.log("time to remove moderfokers");
+            table.deleteRow(1);
+        }
+    });
 }
