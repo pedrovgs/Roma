@@ -40,10 +40,10 @@ case class ClassificationStats(@BeanProperty var totalNumberOfClassifiedTweets: 
   }
 }
 
-case class ClassificationSnapshotStat(@BeanProperty var numberOfClassifiedTweets: Long,
-                                      @BeanProperty var numberOfPositiveTweets: Long,
-                                      @BeanProperty var numberNegativeTweets: Long,
-                                      @BeanProperty var numberOfNeutralTweets: Long,
-                                      @BeanProperty var hour: Long) {
-  def this() = this(0, 0, 0, 0, 0)
+case class ClassificationSnapshotStat(@BeanProperty var hour: Long, @BeanProperty var stats: ClassificationStats) {
+  def this() = this(0, new ClassificationStats())
+  def this(hour: Long) = this(hour, new ClassificationStats())
+
+  def combine(snapshot: ClassificationSnapshotStat): ClassificationSnapshotStat =
+    ClassificationSnapshotStat(hour, stats.combine(snapshot.stats))
 }

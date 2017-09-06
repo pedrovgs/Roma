@@ -93,7 +93,7 @@ firebase {
 machineLearning {
   numberOfIterations = 100
   outputFolder = "./outputs/"
-  modelFileName = "smvModel"
+  modelFileName = "svmModel"
   positiveThreshold = 0.3
   negativeThreshold = -0.2
 }

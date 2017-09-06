@@ -6,6 +6,8 @@ const borderWidth = 2;
 const positiveTweetsLabel = 'Positive Tweets';
 const negativeTweetsLabel = 'Negative Tweets';
 const neutralTweetsLabel = 'Neutral Tweets';
+const oneHourInMillis = 3600000;
+const numberOfTimelineLabels = 12;
 
 var database = initializeFirebase();
 setUpClassifiedTweetsChart(database);
@@ -96,26 +98,15 @@ function setUpTweetsTimelineChart(database) {
     var stackedBar = new Chart(document.getElementById('positiveVsNegativeTweetsTimeline'), {
         type: 'bar',
         data: {
-            labels: ['h1', 'h2', 'h3'],
             datasets: [{
                 label: positiveTweetsLabel,
-                data: [33],
-                backgroundColor: [
-                    positiveColor
-                ],
-                borderColor: [
-                    borderColor
-                ],
+                backgroundColor: positiveColor,
+                borderColor: borderColor,
                 borderWidth: borderWidth
             }, {
                 label: negativeTweetsLabel,
-                data: [50],
-                backgroundColor: [
-                    negativeColor
-                ],
-                borderColor: [
-                    borderColor
-                ],
+                backgroundColor: negativeColor,
+                borderColor: borderColor,
                 borderWidth: borderWidth
             }],
             options: {
@@ -130,4 +121,35 @@ function setUpTweetsTimelineChart(database) {
             }
         }
     });
+    var timelineReference = database.ref('classifiedTweetsTimelineStats').limitToLast(numberOfTimelineLabels);
+    timelineReference.on('child_added', function (snapshot) {
+        updateStackedBarChart(stackedBar, snapshot.val())
+    });
+    timelineReference.on('child_changed', function (snapshot) {
+        updateStackedBarChart(stackedBar, snapshot.val());
+    });
+
+    function updateStackedBarChart(stackedBar, snapshot) {
+        var snapshotHour = snapshot.hour;
+        var labels = stackedBar.data.labels;
+        var positiveTweets = stackedBar.data.datasets[0];
+        var negativeTweets = stackedBar.data.datasets[1];
+        var labelName = calculateSnapshotLabel(snapshot);
+        if (!labels.includes(labelName)) {
+            labels.push(labelName);
+        } else {
+            positiveTweets.data.pop();
+            negativeTweets.data.pop();
+        }
+        positiveTweets.data.push(snapshot.stats.totalNumberOfPositiveTweets);
+        negativeTweets.data.push(snapshot.stats.totalNumberOfNegativeTweets);
+        stackedBar.update(0);
+    }
+
+    function calculateSnapshotLabel(snapshot) {
+        var snapshotDate = new Date(snapshot.hour * oneHourInMillis);
+        var snapshotStartHour = snapshotDate.getHours();
+        var nextHour = (snapshotStartHour + 1) % 24;
+        return snapshotStartHour+":00" + " to " + nextHour+":00";
+    }
 }
