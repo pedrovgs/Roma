@@ -14,7 +14,6 @@ const stackId = "stackId";
 const delayedRedrawInterval = 100;
 
 var initialPieChartUpdate = 0;
-var initialBarChartUpdate = 0;
 
 var database = initializeFirebase();
 setUpClassifiedTweetsChart(database);
@@ -47,16 +46,8 @@ function updateLastInitialPieChartUpdate() {
     initialPieChartUpdate = new Date().getTime();
 }
 
-function updateLastInitialBarChartUpdate() {
-    initialBarChartUpdate = new Date().getTime();
-}
-
 function canUpdatePieCharts() {
     return new Date().getTime() - initialPieChartUpdate > oneSecondInMillis;
-}
-
-function canUpdateBarCharts() {
-    return new Date().getTime() - initialBarChartUpdate > oneSecondInMillis;
 }
 
 function setUpClassifiedTweetsChart(database) {
@@ -183,41 +174,38 @@ function setUpTweetsTimelineChart(database) {
         }
     });
     var timelineReference = database.ref('classifiedTweetsTimelineStats').limitToLast(numberOfTimelineLabels);
-    timelineReference.on('child_added', function (snapshot) {
-        updateStackedBarChart(stackedBar, snapshot.val())
-    });
-    timelineReference.on('child_changed', function (snapshot) {
-        updateStackedBarChart(stackedBar, snapshot.val());
+    timelineReference.once('value', function (snapshot) {
+        var values = snapshot.val();
+        for (var key in values) {
+            var element = values[key];
+            updateStackedBarChart(stackedBar, element);
+        }
+        ;
+        timelineReference.on('child_added', function (snapshot) {
+            updateStackedBarChart(stackedBar, snapshot.val())
+        });
+        timelineReference.on('child_changed', function (snapshot) {
+            updateStackedBarChart(stackedBar, snapshot.val());
+        });
     });
 
+
     function updateStackedBarChart(stackedBar, snapshot) {
-        if (!canUpdateBarCharts()) {
-            return;
-        }
         var snapshotHour = snapshot.hour;
         var labels = stackedBar.data.labels;
-        var isFirstUpdate = labels === undefined || labels.length === 0;
         var positiveTweets = stackedBar.data.datasets[0];
         var negativeTweets = stackedBar.data.datasets[1];
         var labelName = calculateSnapshotLabel(snapshot);
         if (!labels.includes(labelName)) {
             labels.push(labelName);
         }
-        if (isFirstUpdate) {
-            updateLastInitialBarChartUpdate();
-            setTimeout(function () {
-                positiveTweets.data.push(snapshot.stats['numberOfPositiveTweets']);
-                negativeTweets.data.push(snapshot.stats['numberOfNegativeTweets']);
-                stackedBar.update();
-            }, delayedRedrawInterval);
-        } else {
+        if (labels.length === positiveTweets.data.length) {
             positiveTweets.data.pop();
             negativeTweets.data.pop();
-            positiveTweets.data.push(snapshot.stats['numberOfPositiveTweets']);
-            negativeTweets.data.push(snapshot.stats['numberOfNegativeTweets']);
-            stackedBar.update(0);
         }
-
+        positiveTweets.data.push(snapshot.stats['numberOfPositiveTweets']);
+        negativeTweets.data.push(snapshot.stats['numberOfNegativeTweets']);
+        stackedBar.update(0);
     }
 
     function calculateSnapshotLabel(snapshot) {
@@ -230,7 +218,6 @@ function setUpTweetsTimelineChart(database) {
 
 function setUpTweetsTable(database) {
     database.ref('classifiedTweets').limitToLast(numberOfTweeetsInTable).on('child_added', function (snapshot) {
-        console.log("asdfasdfasdfasf")
         var tweet = snapshot.val();
         var table = document.getElementById("tweets");
         var row = table.insertRow();
@@ -238,7 +225,6 @@ function setUpTweetsTable(database) {
         row.insertCell().innerHTML = tweet['sentiment'];
         row.insertCell().innerHTML = tweet['score'];
         if (table.rows.length >= numberOfTweeetsInTable) {
-            console.log("time to remove moderfokers");
             table.deleteRow(1);
         }
     });
