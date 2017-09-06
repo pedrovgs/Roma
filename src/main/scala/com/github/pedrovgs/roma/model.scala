@@ -24,18 +24,18 @@ case class ClassifiedTweet(@BeanProperty var content: Content,
 
 }
 
-case class ClassificationStats(@BeanProperty var totalNumberOfClassifiedTweets: Long,
-                               @BeanProperty var totalNumberOfPositiveTweets: Long,
-                               @BeanProperty var totalNumberOfNegativeTweets: Long,
-                               @BeanProperty var totalNumberOfNeutralTweets: Long) {
+case class ClassificationStats(@BeanProperty var numberOfClassifiedTweets: Long,
+                               @BeanProperty var numberOfPositiveTweets: Long,
+                               @BeanProperty var numberOfNegativeTweets: Long,
+                               @BeanProperty var numberOfNeutralTweets: Long) {
 
   def this() = this(0, 0, 0, 0)
 
   def combine(classificationStats: ClassificationStats): ClassificationStats = {
-    val newTotalTweets    = totalNumberOfClassifiedTweets + classificationStats.totalNumberOfClassifiedTweets
-    val newPositiveTweets = totalNumberOfPositiveTweets + classificationStats.totalNumberOfPositiveTweets
-    val negativeTweets    = totalNumberOfNegativeTweets + classificationStats.totalNumberOfNegativeTweets
-    val neutralTweets     = totalNumberOfNeutralTweets + classificationStats.totalNumberOfNeutralTweets
+    val newTotalTweets    = numberOfClassifiedTweets + classificationStats.numberOfClassifiedTweets
+    val newPositiveTweets = numberOfPositiveTweets + classificationStats.numberOfPositiveTweets
+    val negativeTweets    = numberOfNegativeTweets + classificationStats.numberOfNegativeTweets
+    val neutralTweets     = numberOfNeutralTweets + classificationStats.numberOfNeutralTweets
     ClassificationStats(newTotalTweets, newPositiveTweets, negativeTweets, neutralTweets)
   }
 }

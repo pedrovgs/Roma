@@ -8,6 +8,7 @@ const negativeTweetsLabel = 'Negative Tweets';
 const neutralTweetsLabel = 'Neutral Tweets';
 const oneHourInMillis = 3600000;
 const numberOfTimelineLabels = 12;
+const stackId = "stackId"
 
 var database = initializeFirebase();
 setUpClassifiedTweetsChart(database);
@@ -52,8 +53,8 @@ function setUpClassifiedTweetsChart(database) {
         var dataset = classifiedTweets.data.datasets[0];
         dataset.data.pop();
         dataset.data.pop();
-        dataset.data.push(stats['totalNumberOfPositiveTweets']);
-        dataset.data.push(stats['totalNumberOfNegativeTweets']);
+        dataset.data.push(stats['numberOfPositiveTweets']);
+        dataset.data.push(stats['numberOfNegativeTweets']);
         classifiedTweets.update(0);
     });
 }
@@ -87,9 +88,9 @@ function setNeutralUpClassifiedTweetsChart(database) {
         dataset.data.pop();
         dataset.data.pop();
         dataset.data.pop();
-        dataset.data.push(stats['totalNumberOfPositiveTweets']);
-        dataset.data.push(stats['totalNumberOfNegativeTweets']);
-        dataset.data.push(stats['totalNumberOfNeutralTweets']);
+        dataset.data.push(stats['numberOfPositiveTweets']);
+        dataset.data.push(stats['numberOfNegativeTweets']);
+        dataset.data.push(stats['numberOfNeutralTweets']);
         classifiedTweets2.update(0);
     });
 }
@@ -102,12 +103,14 @@ function setUpTweetsTimelineChart(database) {
                 label: positiveTweetsLabel,
                 backgroundColor: positiveColor,
                 borderColor: borderColor,
-                borderWidth: borderWidth
+                borderWidth: borderWidth,
+                stack: stackId
             }, {
                 label: negativeTweetsLabel,
                 backgroundColor: negativeColor,
                 borderColor: borderColor,
-                borderWidth: borderWidth
+                borderWidth: borderWidth,
+                stack: stackId
             }],
             options: {
                 scales: {
@@ -141,8 +144,8 @@ function setUpTweetsTimelineChart(database) {
             positiveTweets.data.pop();
             negativeTweets.data.pop();
         }
-        positiveTweets.data.push(snapshot.stats.totalNumberOfPositiveTweets);
-        negativeTweets.data.push(snapshot.stats.totalNumberOfNegativeTweets);
+        positiveTweets.data.push(snapshot.stats['numberOfPositiveTweets']);
+        negativeTweets.data.push(snapshot.stats['numberOfNegativeTweets']);
         stackedBar.update(0);
     }
 
