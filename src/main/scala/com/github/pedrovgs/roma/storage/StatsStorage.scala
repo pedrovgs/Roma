@@ -18,7 +18,7 @@ object StatsStorage {
 
   private def updateGeneralStats(tweetStats: ClassificationStats) = {
     Firebase.get[ClassificationStats](classifiedTweetsStats, classOf[ClassificationStats]).andThen {
-      case Success(Some(stats)) => updateStatsValue(stats.combine(stats))
+      case Success(Some(stats)) => updateStatsValue(stats.combine(tweetStats))
       case Success(None)        => updateStatsValue(new ClassificationStats().combine(tweetStats))
     }
   }

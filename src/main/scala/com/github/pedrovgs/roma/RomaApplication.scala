@@ -133,7 +133,7 @@ object RomaApplication extends SparkApp with Resources {
       }
   }
 
-  private def saveTweets(classifiedTweets: RDD[ClassifiedTweet]) = {
+  private def saveTweets(classifiedTweets: RDD[ClassifiedTweet]): Unit = {
     classifiedTweets.foreachPartition { classifiedTweetsPerPartition =>
       TweetsStorage
         .saveTweets(classifiedTweetsPerPartition.toSeq)
@@ -147,16 +147,18 @@ object RomaApplication extends SparkApp with Resources {
 
   }
 
-  private def updateStats(classifiedTweets: RDD[ClassifiedTweet]) = {
+  private def updateStats(classifiedTweets: RDD[ClassifiedTweet]): Unit = {
     val tweetsStats: ClassificationStats = calculateClassificationStats(classifiedTweets)
-    StatsStorage
-      .updateStats(tweetsStats)
-      .onComplete {
-        case Success(Some(stats)) =>
-          print("Classified tweet stats updated properly!")
-          print(stats)
-        case _ => print("Error updating stats :_(")
-      }
+    if (tweetsStats.numberOfClassifiedTweets > 0) {
+      StatsStorage
+        .updateStats(tweetsStats)
+        .onComplete {
+          case Success(Some(stats)) =>
+            print("Classified tweet stats updated properly!")
+            print(stats)
+          case _ => print("Error updating stats :_(")
+        }
+    }
   }
 
   private def calculateClassificationStats(classifiedTweets: RDD[ClassifiedTweet]) = {
@@ -173,8 +175,6 @@ object RomaApplication extends SparkApp with Resources {
         neutralTweets.add(1)
       }
     }
-    val tweetsStats =
-      ClassificationStats(numberOfTweets, positiveTweets.value, negativeTweets.value, neutralTweets.value)
-    tweetsStats
+    ClassificationStats(numberOfTweets, positiveTweets.value, negativeTweets.value, neutralTweets.value)
   }
 }
