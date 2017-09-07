@@ -143,6 +143,7 @@ object RomaApplication extends SparkApp with Resources {
   }
 
   private def saveTweets(classifiedTweets: RDD[ClassifiedTweet]): Unit = {
+    TweetsStorage.clear()
     classifiedTweets.foreachPartition { classifiedTweetsPerPartition =>
       TweetsStorage
         .saveTweets(classifiedTweetsPerPartition.toSeq)
