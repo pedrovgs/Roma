@@ -11,7 +11,6 @@ if [ $? -eq 0 ]
 then
     mkdir -p /tmp/data/
     cp -R src/main/resources* /tmp/data/
-    cp -R src/main/resources* docker/data
     spark-submit \
       --driver-memory 6g \
       --class com.github.pedrovgs.roma.machinelearning.RomaMachineLearningTrainer \
