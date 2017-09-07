@@ -1,0 +1,117 @@
+<!doctype html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="x-ua-compatible" content="ie=edge">
+    <title>Projct Roma</title>
+    <meta name="description"
+          content="Spark project written in Scala used to perform real time sentiment analysis on top of Twitter's streaming API">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/materialize/0.100.2/css/materialize.min.css">
+    <link rel="stylesheet" href="css/main.css">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+</head>
+<body>
+<nav>
+    <div class="nav-wrapper blue">
+        <a href="#" class="brand-logo right">Project Roma</a>
+        <ul id="nav-mobile" class="left hide-on-med-and-down">
+            <li><a href="https://github.com/pedrovgs/roma">GitHub Repository</a></li>
+            <li><a href="https://github.com/pedrovgs/roma#training">SVM Training Process</a></li>
+            <li><a href="https://github.com/pedrovgs/roma#contributors">Contributors</a></li>
+        </ul>
+    </div>
+</nav>
+<main>
+    <h5 class="center-align blue-text">Let's measure how many positive or negative tweets are published around the
+        world!</h5>
+    <div id="loader" class="loader center-align preloader-wrapper big active">
+        <div class="spinner-layer spinner-blue-only">
+            <div class="circle-clipper left">
+                <div class="circle"></div>
+            </div>
+            <div class="gap-patch">
+                <div class="circle"></div>
+            </div>
+            <div class="circle-clipper right">
+                <div class="circle"></div>
+            </div>
+        </div>
+    </div>
+    <div id="charts" class="row section" style="display:none">
+        <div class="col s14 l3">
+            <h6 class="center-align blue-text">Positive vs Negative Tweets</h6>
+            <canvas id="positiveVsNegativeTweets"></canvas>
+        </div>
+        <div class="col s14 l3">
+            <h6 class="center-align blue-text">Positive vs Negative vs Neutral Tweets</h6>
+            <canvas id="positiveVsNegativeVsNeutralTweets"></canvas>
+        </div>
+        <div class="col s14 l6">
+            <h6 class="center-align blue-text">Positive vs Negative Tweets Timeline Tweets</h6>
+            <canvas id="positiveVsNegativeTweetsTimeline"></canvas>
+        </div>
+        <table id="tweets" class="container blue-text striped">
+            <thead>
+            <tr>
+                <th>Tweet content</th>
+                <th>Sentiment</th>
+                <th>Score</th>
+            </tr>
+            </thead>
+
+            <tbody>
+            <tr>
+            </tr>
+            </tbody>
+        </table>
+
+    </div>
+</main>
+<footer class="page-footer blue">
+    <div class="container">
+        <div class="row">
+            <div class="col l6 s12">
+                <h5 class="white-text">Project Roma</h5>
+                <p class="grey-text text-lighten-4">Machine learning and big data project built on top of <a
+                    class="grey-text text-lighten-3" href="https://spark.apache.org">Apache Spark</a> and written in <a
+                    class="grey-text text-lighten-3" href="https://www.scala-lang.org/">Scala</a>. Roma performs a real
+                    time sentiment analysis using Twitter's streaming API as data source. The classification result is
+                    persisted in <a class="grey-text text-lighten-3" href="https://firebase.google.com">Firebase</a>.
+                </p>
+                <p>You can find the source code in <a class="grey-text text-lighten-3"
+                                                      href="https://github.com/pedrovgs/roma">this GitHub Repository.</a>
+                </p>
+            </div>
+            <div class="col l4 offset-l2 s12">
+                <h5 class="white-text">Contributors</h5>
+                <ul>
+                    <li><a class="grey-text text-lighten-3" href="https://www.researchgate.net/profile/Asuncion_Jimenez-Cordero">Mª Asunción Jiménez
+                        Cordero</a> - PhD Student at Universidad de Sevilla.</li>
+                    <li><a class="grey-text text-lighten-3" href="https://github.com/pedrovgs">Pedro Vicente Gómez
+                        Sánchez</a> - Senior Software Engineer at Karumi.</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+    <div class="footer-copyright">
+        <div class="container">
+            © 2017 Copyright Pedro Vicente Gómez Sánchez
+        </div>
+    </div>
+</footer>
+
+<script src="js/vendor/modernizr-3.5.0.min.js"></script>
+<script src="https://code.jquery.com/jquery-3.2.1.min.js"
+        integrity="sha256-hwg4gsxgFZhOsEEamdOYGBf13FyQuiTwlAQgxVSNgt4=" crossorigin="anonymous"></script>
+<script>window.jQuery || document.write('<script src="js/vendor/jquery-3.2.1.min.js"><\/script>')</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/materialize/0.100.2/js/materialize.min.js"></script>
+<script src="https://www.gstatic.com/firebasejs/4.3.0/firebase.js"></script>
+<script src="https://www.gstatic.com/firebasejs/4.2.0/firebase-database.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.6.0/Chart.bundle.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.6.0/Chart.min.js"></script>
+<script src="js/main.js"></script>
+</body>
+</html>

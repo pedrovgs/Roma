@@ -3,10 +3,9 @@ package com.github.pedrovgs.roma
 import com.github.pedrovgs.roma.Console._
 import com.github.pedrovgs.roma.config.{ConfigLoader, FirebaseConfig, MachineLearningConfig, TwitterConfig}
 import com.github.pedrovgs.roma.machinelearning.{FeaturesExtractor, TweetsClassifier}
-import com.github.pedrovgs.roma.storage.{Firebase, TweetsStorage}
+import com.github.pedrovgs.roma.storage.{StatsStorage, TweetsStorage}
 import org.apache.spark.mllib.classification.SVMModel
 import org.apache.spark.rdd.RDD
-import org.apache.spark.sql.Row
 import org.apache.spark.streaming.twitter.TwitterUtils
 import twitter4j.Status
 import twitter4j.auth.{Authorization, OAuthAuthorization}
@@ -30,10 +29,9 @@ object RomaApplication extends SparkApp with Resources {
     val machineLearningConfig = loadMachineLearningConfig()
     smallSeparator()
     (firebaseCredentials, twitterCredentials, machineLearningConfig) match {
-      case (Some(_), Some(twitterConfig), Some(machineLearningConfig)) => {
+      case (Some(_), Some(twitterConfig), Some(mlConfig)) =>
         val authorization = authorizeTwitterStream(twitterConfig)
-        startStreaming(authorization, machineLearningConfig)
-      }
+        startStreaming(authorization, mlConfig)
       case _ => print("Finishing application")
     }
   }
@@ -100,7 +98,8 @@ object RomaApplication extends SparkApp with Resources {
       .foreachRDD { rdd: RDD[Status] =>
         if (!rdd.isEmpty()) {
           val classifiedTweets: RDD[ClassifiedTweet] = classifyTweets(rdd, svmModel, machineLearningConfig)
-          saveTweets(classifiedTweets)
+          saveTweets(classifiedTweets.filter(_.sentiment != Sentiment.Neutral.toString))
+          updateStats(classifiedTweets)
           smallSeparator()
         }
       }
@@ -122,26 +121,65 @@ object RomaApplication extends SparkApp with Resources {
     val featurizedTweets = FeaturesExtractor.extract(tweets)
     val classifiedTweets = TweetsClassifier.classify(sqlContext, svmModel, featurizedTweets)
     classifiedTweets.rdd
-      .filter { row: Row =>
-        val classScore = row.getAs[Double](TweetColumns.classificationColumnName)
-        classScore >= machineLearningConfig.positiveThreshold || classScore < machineLearningConfig.negativeThreshold
-      }
       .map { row =>
-        val content       = row.getAs[String](TweetColumns.tweetContentColumnName)
-        val classScore    = row.getAs[Double](TweetColumns.classificationColumnName)
-        val positiveTweet = classScore > 0
-        ClassifiedTweet(content, positiveTweet, classScore)
+        val content    = row.getAs[String](TweetColumns.tweetContentColumnName)
+        val classScore = row.getAs[Double](TweetColumns.classificationColumnName)
+        val sentiment =
+          if (classScore <= machineLearningConfig.positiveThreshold && classScore >= machineLearningConfig.negativeThreshold)
+            Sentiment.Neutral
+          else if (classScore > machineLearningConfig.positiveThreshold) Sentiment.Positive
+          else Sentiment.Negative
+        ClassifiedTweet(content, sentiment.toString, classScore)
       }
   }
 
-  private def saveTweets(classifiedTweets: RDD[ClassifiedTweet]) = {
-    TweetsStorage
-      .saveTweets(classifiedTweets.collect)
-      .onComplete {
-        case Success(tweets) =>
-          print("Tweets saved properly!")
-          tweets.foreach(print(_))
-        case Failure(_) => print("Error saving tweets :_(")
+  private def saveTweets(classifiedTweets: RDD[ClassifiedTweet]): Unit = {
+    classifiedTweets.foreachPartition { classifiedTweetsPerPartition =>
+      TweetsStorage
+        .saveTweets(classifiedTweetsPerPartition.toSeq)
+        .onComplete {
+          case Success(savedTweets) =>
+            print("Tweets saved properly!")
+            savedTweets.foreach(print(_))
+          case Failure(_) => print("Error saving tweets :_(")
+        }
+    }
+
+  }
+
+  private def updateStats(classifiedTweets: RDD[ClassifiedTweet]): Unit = {
+    val tweetsStats: ClassificationStats = calculateClassificationStats(classifiedTweets)
+    if (tweetsStats.numberOfClassifiedTweets > 0) {
+      StatsStorage
+        .updateStats(tweetsStats)
+        .onComplete {
+          case Success(Some(stats)) =>
+            print("Classified tweet stats updated properly!")
+            print(stats)
+          case _ => print("Error updating stats :_(")
+        }
+    }
+  }
+
+  private def calculateClassificationStats(classifiedTweets: RDD[ClassifiedTweet]) = {
+    val numberOfTweets = classifiedTweets.count()
+    val positiveTweets = sparkContext.longAccumulator
+    val negativeTweets = sparkContext.longAccumulator
+    val neutralTweets  = sparkContext.longAccumulator
+    classifiedTweets.foreach { tweet =>
+      if (tweet.sentiment == Sentiment.Positive.toString) {
+        positiveTweets.add(1)
+      } else if (tweet.sentiment == Sentiment.Negative.toString) {
+        negativeTweets.add(1)
+      } else {
+        neutralTweets.add(1)
       }
+    }
+    ClassificationStats(numberOfTweets, positiveTweets.value, negativeTweets.value, neutralTweets.value)
+  }
+
+  private def clearData() = {
+    TweetsStorage.clear()
+    StatsStorage.clear()
   }
 }
