@@ -101,6 +101,19 @@ machineLearning {
 }
 ```
 
+If you want to review the classification results from a simple web-site you'll have to modify the file ``web/js/main.sj`` and initialize Firebase configuration using your own credentials. Here you have an example:
+
+```js
+var config = {
+        apiKey: "YOUR API KEY",
+        authDomain: "YOUR AUTH DOMAIN",
+        databaseURL: "YOUR DATABASE URL",
+        projectId: "YOUR PROJECT ID",
+        storageBucket: "YOUR STORAGE BUCKET",
+        messagingSenderId: "YOUR MESSAGING SENDER ID"
+    };
+```
+
 You'll need to also add a new file named ``firebaseCredentials.json`` into the ``/src/main/resources/`` folder. You can get this file from your [Firebase console](https://console.firebase.google.com).
 
 You can get these credentials by creating a Twitter application [here](https://apps.twitter.com/) and a new Firebase application [here](https://console.firebase.google.com).
