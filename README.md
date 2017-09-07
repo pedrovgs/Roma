@@ -30,6 +30,8 @@ The steps followed to classify tweets are:
 
 **As SVM is a binary classification model and we need to discard some tweets and we can't always guarantee if the content is positive or negative we've applied a threshold to the prediction score generated as the result of the Support Vector Machine prediction.**
 
+***The classification results and stats are saved into Firebase. We decided to use this storage platform because it's free and we don't have any sponsor for this project. Firebase does not support aggregation and we have to implement it manually. Even when the performance result is not the best, this implementation is the best we could get for free. In the future, if we have any sponsor for the systems infrastructure we will move the implementation to any other database.***
+
 ### Training
 
 As Support Vector Machine is a supervised classification model we need to train it. To be able to generate an already trained model we need a corpus based on a training and testing tweets datasets already classified. Thanks to [Sentiment140](http://help.sentiment140.com/for-students/) **we've got a training dataset composed of 1.600.000 tweets into a GZIP file and a test dataset composed of 359 tweets.**
@@ -140,6 +142,15 @@ Contributors
 
 * [Mª Asunción Jiménez Cordero](https://www.researchgate.net/profile/Asuncion_Jimenez-Cordero) - PhD Student at Universidad de Sevilla. Thanks for all your contributions to this project and support during the development. Your machine learning support and knowledge was the key to success in this project.
 * [Pedro Vicente Gómez Sánchez](https://github.com/pedrovgs) - Core contributor.
+
+References
+----------
+
+* [Predicting the Political Alignement of Twitter Users](https://www.researchgate.net/publication/220876147_Predicting_the_Political_Alignment_of_Twitter_Users)
+* [Twitter Trending Topic Classification](http://dl.acm.org/citation.cfm?id=2119627)
+* [Detecting Spammers on Twitter](http://citeseerx.ist.psu.edu/viewdoc/summary?doi=10.1.1.297.5340)
+* [Classifing Latent User attributes in Twitter](http://dl.acm.org/citation.cfm?id=1871993)
+* [Earthquake Shakes Twitter Users: Real-Time Event Detection](http://citeseerx.ist.psu.edu/viewdoc/download?doi=10.1.1.183.8117&rep=rep1&type=pdf)
 
 Developed By
 ------------
