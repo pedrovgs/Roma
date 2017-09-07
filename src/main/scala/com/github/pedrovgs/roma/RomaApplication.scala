@@ -89,7 +89,7 @@ object RomaApplication extends SparkApp with Resources {
   private def startStreaming(authorization: Authorization, machineLearningConfig: MachineLearningConfig) = {
     print("Let's start reading tweets!")
     separator()
-    val modelPath = getFilePath("/" + machineLearningConfig.modelFileName)
+    val modelPath = getModelPath(machineLearningConfig)
     val svmModel  = SVMModel.load(sparkContext, modelPath)
     twitterStream(authorization)
       .filter(_.getLang == "en")
@@ -106,6 +106,15 @@ object RomaApplication extends SparkApp with Resources {
     streamingContext.start()
     streamingContext.awaitTermination()
     print("Application finished")
+  }
+
+  private def getModelPath(machineLearningConfig: MachineLearningConfig) = {
+    val modelPath = getFilePath("/" + machineLearningConfig.modelFileName)
+    if (modelPath.isEmpty && args.length > 0) {
+      args(0)
+    } else {
+      modelPath
+    }
   }
 
   private def classifyTweets(status: RDD[Status],
@@ -178,7 +187,7 @@ object RomaApplication extends SparkApp with Resources {
     ClassificationStats(numberOfTweets, positiveTweets.value, negativeTweets.value, neutralTweets.value)
   }
 
-  private def clearData() = {
+  private def clearData(): Unit = {
     TweetsStorage.clear()
     StatsStorage.clear()
   }

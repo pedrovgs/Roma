@@ -18,14 +18,7 @@ trait Resources {
       print("Reading existing volume path at: " + volumePath)
       "file://" + volumePath + "/"
     } else {
-      val fileName   = name.substring(name.lastIndexOf("/") + 1)
-      val workerPath = SparkFiles.get(fileName)
-      if (exists(workerPath)) {
-        print("Reading existing worker path at: " + workerPath)
-      } else {
-        print("Couln't find file: " + fileName)
-      }
-      "file://" + workerPath + "/"
+      ""
     }
   }
 

@@ -6,7 +6,6 @@ import com.fasterxml.jackson.module.scala.experimental.ScalaObjectMapper
 import org.apache.spark.sql.{SQLContext, SparkSession}
 import org.apache.spark.streaming.{Seconds, StreamingContext}
 import org.apache.spark.{SparkConf, SparkContext}
-import org.apache.log4j.{Level, Logger}
 
 private[roma] trait SparkApp extends App {
 
@@ -19,7 +18,7 @@ private[roma] trait SparkApp extends App {
     .builder()
     .appName(appName)
     .config(conf)
-    .master(masterUrl())
+    .master("local[*]")
     .getOrCreate()
   lazy val sparkContext: SparkContext = sparkSession.sparkContext
   lazy val sqlContext: SQLContext     = sparkSession.sqlContext
@@ -32,15 +31,6 @@ private[roma] trait SparkApp extends App {
   lazy val objectMapper: ObjectMapper = {
     val mapper = new ObjectMapper() with ScalaObjectMapper
     mapper.registerModule(DefaultScalaModule)
-  }
-
-  private def masterUrl(): String = {
-    val defaultMasterUrl = "local[*]"
-    if (args == null || args.isEmpty) {
-      defaultMasterUrl
-    } else {
-      Option(args(0)).getOrElse(defaultMasterUrl)
-    }
   }
 
 }
