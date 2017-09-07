@@ -10,7 +10,7 @@ object TweetsStorage {
   def saveTweets(tweets: Seq[ClassifiedTweet]): Future[Seq[ClassifiedTweet]] =
     Firebase.save("/classifiedTweets", values = tweets)
 
-  def clear() = {
+  def clear(): Unit = {
     Tasks.await(Firebase.remove("/classifiedTweets"))
     Tasks.await(Firebase.remove("/classifiedTweetsStats"))
     Tasks.await(Firebase.remove("/classifiedTweetsTimelineStats"))

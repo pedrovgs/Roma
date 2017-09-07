@@ -11,23 +11,21 @@ object StatsStorage {
   private val classifiedTweetsStats         = "/classifiedTweetsStats"
   private val classifiedTweetsTimelineStats = "/classifiedTweetsTimelineStats"
 
-  def updateStats(tweets: Seq[ClassifiedTweet]): Future[Option[ClassificationStats]] = {
-    updateStatsTimeline(tweets)
-    updateGeneralStats(tweets)
+  def updateStats(stats: ClassificationStats): Future[Option[ClassificationStats]] = {
+    updateStatsTimeline(stats)
+    updateGeneralStats(stats)
   }
 
-  private def updateGeneralStats(tweets: Seq[ClassifiedTweet]) = {
-    val latestTweetsStats = calculateLatestTweetsStats(tweets)
+  private def updateGeneralStats(tweetStats: ClassificationStats) = {
     Firebase.get[ClassificationStats](classifiedTweetsStats, classOf[ClassificationStats]).andThen {
-      case Success(Some(stats)) => updateStatsValue(stats.combine(latestTweetsStats))
-      case Success(None)        => updateStatsValue(new ClassificationStats().combine(latestTweetsStats))
+      case Success(Some(stats)) => updateStatsValue(stats.combine(stats))
+      case Success(None)        => updateStatsValue(new ClassificationStats().combine(tweetStats))
     }
   }
 
-  private def updateStatsTimeline(tweets: Seq[ClassifiedTweet]): Future[Option[ClassificationSnapshotStat]] = {
-    val latestTweetsStats = calculateLatestTweetsStats(tweets)
-    val hour: Long        = System.currentTimeMillis() / (1 hour).toMillis
-    val newSnapshot       = ClassificationSnapshotStat(hour, latestTweetsStats)
+  private def updateStatsTimeline(stats: ClassificationStats): Future[Option[ClassificationSnapshotStat]] = {
+    val hour: Long  = System.currentTimeMillis() / (1 hour).toMillis
+    val newSnapshot = ClassificationSnapshotStat(hour, stats)
     Firebase
       .get[ClassificationSnapshotStat](snapshotFirebasePath(newSnapshot), classOf[ClassificationSnapshotStat])
       .andThen {
@@ -47,17 +45,5 @@ object StatsStorage {
   private def snapshotFirebasePath(snapshot: ClassificationSnapshotStat): String = {
     val hour = snapshot.hour
     classifiedTweetsTimelineStats + s"/$hour"
-  }
-
-  private def calculateLatestTweetsStats(tweets: Seq[ClassifiedTweet]): ClassificationStats = {
-    val totalNumberOfClassifiedTweets: Long = tweets.length
-    val totalNumberOfPositiveTweets: Long   = tweets.count(_.sentiment == Sentiment.Positive.toString)
-    val totalNumberOfNegativeTweets: Long   = tweets.count(_.sentiment == Sentiment.Negative.toString)
-    val totalNumberOfNeutralTweets
-      : Long = totalNumberOfClassifiedTweets - totalNumberOfPositiveTweets - totalNumberOfNegativeTweets
-    ClassificationStats(totalNumberOfClassifiedTweets,
-                        totalNumberOfPositiveTweets,
-                        totalNumberOfNegativeTweets,
-                        totalNumberOfNeutralTweets)
   }
 }

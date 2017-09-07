@@ -134,24 +134,47 @@ object RomaApplication extends SparkApp with Resources {
   }
 
   private def saveTweets(classifiedTweets: RDD[ClassifiedTweet]) = {
-    TweetsStorage
-      .saveTweets(classifiedTweets.collect)
-      .onComplete {
-        case Success(tweets) =>
-          print("Tweets saved properly!")
-          tweets.foreach(print(_))
-        case Failure(_) => print("Error saving tweets :_(")
-      }
+    classifiedTweets.foreachPartition { classifiedTweetsPerPartition =>
+      TweetsStorage
+        .saveTweets(classifiedTweetsPerPartition.toSeq)
+        .onComplete {
+          case Success(savedTweets) =>
+            print("Tweets saved properly!")
+            savedTweets.foreach(print(_))
+          case Failure(_) => print("Error saving tweets :_(")
+        }
+    }
+
   }
 
   private def updateStats(classifiedTweets: RDD[ClassifiedTweet]) = {
+    val tweetsStats: ClassificationStats = calculateClassificationStats(classifiedTweets)
     StatsStorage
-      .updateStats(classifiedTweets.collect())
+      .updateStats(tweetsStats)
       .onComplete {
         case Success(Some(stats)) =>
-          print("Classified tweet stats properly!")
+          print("Classified tweet stats updated properly!")
           print(stats)
         case _ => print("Error updating stats :_(")
       }
+  }
+
+  private def calculateClassificationStats(classifiedTweets: RDD[ClassifiedTweet]) = {
+    val numberOfTweets = classifiedTweets.count()
+    val positiveTweets = sparkContext.longAccumulator
+    val negativeTweets = sparkContext.longAccumulator
+    val neutralTweets  = sparkContext.longAccumulator
+    classifiedTweets.foreach { tweet =>
+      if (tweet.sentiment == Sentiment.Positive.toString) {
+        positiveTweets.add(1)
+      } else if (tweet.sentiment == Sentiment.Negative.toString) {
+        negativeTweets.add(1)
+      } else {
+        neutralTweets.add(1)
+      }
+    }
+    val tweetsStats =
+      ClassificationStats(numberOfTweets, positiveTweets.value, negativeTweets.value, neutralTweets.value)
+    tweetsStats
   }
 }
