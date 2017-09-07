@@ -184,7 +184,11 @@ object RomaApplication extends SparkApp with Resources {
         neutralTweets.add(1)
       }
     }
-    ClassificationStats(numberOfTweets, positiveTweets.value, negativeTweets.value, neutralTweets.value)
+    val stats = ClassificationStats(numberOfTweets, positiveTweets.value, negativeTweets.value, neutralTweets.value)
+    positiveTweets.reset()
+    negativeTweets.reset()
+    neutralTweets.reset()
+    stats
   }
 
   private def clearData(): Unit = {
