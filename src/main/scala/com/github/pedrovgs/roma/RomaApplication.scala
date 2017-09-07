@@ -177,4 +177,9 @@ object RomaApplication extends SparkApp with Resources {
     }
     ClassificationStats(numberOfTweets, positiveTweets.value, negativeTweets.value, neutralTweets.value)
   }
+
+  private def clearData() = {
+    TweetsStorage.clear()
+    StatsStorage.clear()
+  }
 }

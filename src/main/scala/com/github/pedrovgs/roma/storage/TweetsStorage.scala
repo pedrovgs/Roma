@@ -12,7 +12,5 @@ object TweetsStorage {
 
   def clear(): Unit = {
     Tasks.await(Firebase.remove("/classifiedTweets"))
-    Tasks.await(Firebase.remove("/classifiedTweetsStats"))
-    Tasks.await(Firebase.remove("/classifiedTweetsTimelineStats"))
   }
 }

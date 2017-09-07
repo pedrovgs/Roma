@@ -1,6 +1,7 @@
 package com.github.pedrovgs.roma.storage
 
 import com.github.pedrovgs.roma.{ClassificationSnapshotStat, ClassificationStats, ClassifiedTweet, Sentiment}
+import com.google.firebase.tasks.Tasks
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
@@ -14,6 +15,11 @@ object StatsStorage {
   def updateStats(stats: ClassificationStats): Future[Option[ClassificationStats]] = {
     updateStatsTimeline(stats)
     updateGeneralStats(stats)
+  }
+
+  def clear(): Unit = {
+    Tasks.await(Firebase.remove("/classifiedTweetsStats"))
+    Tasks.await(Firebase.remove("/classifiedTweetsTimelineStats"))
   }
 
   private def updateGeneralStats(tweetStats: ClassificationStats) = {
