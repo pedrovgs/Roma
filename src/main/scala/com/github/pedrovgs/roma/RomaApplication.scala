@@ -6,6 +6,11 @@ import com.github.pedrovgs.roma.machinelearning.{FeaturesExtractor, TweetsClassi
 import com.github.pedrovgs.roma.storage.{StatsStorage, TweetsStorage}
 import org.apache.spark.mllib.classification.SVMModel
 import org.apache.spark.rdd.RDD
+import org.apache.spark.streaming.scheduler.{
+  StreamingListener,
+  StreamingListenerReceiverError,
+  StreamingListenerReceiverStopped
+}
 import org.apache.spark.streaming.twitter.TwitterUtils
 import twitter4j.Status
 import twitter4j.auth.{Authorization, OAuthAuthorization}
@@ -86,7 +91,7 @@ object RomaApplication extends SparkApp with Resources {
     }
   }
 
-  private def startStreaming(authorization: Authorization, machineLearningConfig: MachineLearningConfig) = {
+  private def startStreaming(authorization: Authorization, machineLearningConfig: MachineLearningConfig): Unit = {
     print("Let's start reading tweets!")
     separator()
     val modelPath = getModelPath(machineLearningConfig)
@@ -104,6 +109,17 @@ object RomaApplication extends SparkApp with Resources {
         }
       }
     streamingContext.start()
+    streamingContext.addStreamingListener(new StreamingListener {
+      override def onReceiverStopped(receiverStopped: StreamingListenerReceiverStopped): Unit = {
+        print("Streaming receiver stopped: " + receiverStopped)
+        startStreaming(authorization, machineLearningConfig)
+      }
+
+      override def onReceiverError(receiverError: StreamingListenerReceiverError): Unit = {
+        print("Streaming receiver stopped: " + receiverError)
+        startStreaming(authorization, machineLearningConfig)
+      }
+    })
     streamingContext.awaitTermination()
     print("Application finished")
   }
