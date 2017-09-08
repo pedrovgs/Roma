@@ -16,8 +16,7 @@ then
       --executor-memory 3g \
       --class com.github.pedrovgs.roma.RomaApplication \
       --deploy-mode client \
-      target/scala-2.11/roma.jar \
-      "file:///tmp/data/resources/svmModel/"
+      target/scala-2.11/roma.jar
 else
     echo "Review your Apache Spark installation. We can't find 'spark-submit' binary file."
 fi
