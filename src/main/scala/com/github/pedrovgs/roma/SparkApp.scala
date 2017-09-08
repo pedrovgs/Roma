@@ -13,12 +13,14 @@ private[roma] trait SparkApp extends App {
 
   private lazy val conf: SparkConf =
     new SparkConf()
+    .set("spark.streaming.backpressure.enabled", "true")
 
   private lazy val sparkSession: SparkSession = SparkSession
     .builder()
     .appName(appName)
     .config(conf)
     .master("local[*]")
+
     .getOrCreate()
   lazy val sparkContext: SparkContext = sparkSession.sparkContext
   lazy val sqlContext: SQLContext     = sparkSession.sqlContext

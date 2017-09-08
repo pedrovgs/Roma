@@ -6,11 +6,8 @@ import com.github.pedrovgs.roma.machinelearning.{FeaturesExtractor, TweetsClassi
 import com.github.pedrovgs.roma.storage.{StatsStorage, TweetsStorage}
 import org.apache.spark.mllib.classification.SVMModel
 import org.apache.spark.rdd.RDD
-import org.apache.spark.streaming.scheduler.{
-  StreamingListener,
-  StreamingListenerReceiverError,
-  StreamingListenerReceiverStopped
-}
+import org.apache.spark.storage.StorageLevel
+import org.apache.spark.streaming.scheduler.{StreamingListener, StreamingListenerReceiverError, StreamingListenerReceiverStopped}
 import org.apache.spark.streaming.twitter.TwitterUtils
 import twitter4j.Status
 import twitter4j.auth.{Authorization, OAuthAuthorization}
@@ -145,7 +142,7 @@ object RomaApplication extends SparkApp with Resources {
           else Sentiment.Negative
         ClassifiedTweet(content, sentiment.toString, classScore)
       }
-      .cache()
+      .persist(StorageLevel.MEMORY_ONLY)
   }
 
   private def saveTweets(classifiedTweets: RDD[ClassifiedTweet]): Unit = {
