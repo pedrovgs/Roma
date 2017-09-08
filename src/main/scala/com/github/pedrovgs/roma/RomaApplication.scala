@@ -109,17 +109,6 @@ object RomaApplication extends SparkApp with Resources {
         }
       }
     streamingContext.start()
-    streamingContext.addStreamingListener(new StreamingListener {
-      override def onReceiverStopped(receiverStopped: StreamingListenerReceiverStopped): Unit = {
-        print("Streaming receiver stopped: " + receiverStopped)
-        startStreaming(authorization, machineLearningConfig)
-      }
-
-      override def onReceiverError(receiverError: StreamingListenerReceiverError): Unit = {
-        print("Streaming receiver stopped: " + receiverError)
-        startStreaming(authorization, machineLearningConfig)
-      }
-    })
     streamingContext.awaitTermination()
     print("Application finished")
   }
