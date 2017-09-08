@@ -9,23 +9,24 @@ import org.apache.spark.{SparkConf, SparkContext}
 
 private[roma] trait SparkApp extends App {
 
+  private val batchDuration = Seconds(15)
+
   val appName: String
 
   private lazy val conf: SparkConf =
     new SparkConf()
-    .set("spark.streaming.backpressure.enabled", "true")
+      .set("spark.streaming.backpressure.enabled", "true")
 
   private lazy val sparkSession: SparkSession = SparkSession
     .builder()
     .appName(appName)
     .config(conf)
     .master("local[*]")
-
     .getOrCreate()
   lazy val sparkContext: SparkContext = sparkSession.sparkContext
   lazy val sqlContext: SQLContext     = sparkSession.sqlContext
   lazy val streamingContext: StreamingContext = {
-    val streamingContext = new StreamingContext(sparkContext, Seconds(1))
+    val streamingContext = new StreamingContext(sparkContext, batchDuration)
     streamingContext.checkpoint("./checkpoint")
     streamingContext
   }

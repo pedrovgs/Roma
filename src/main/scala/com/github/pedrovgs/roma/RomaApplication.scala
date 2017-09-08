@@ -7,7 +7,11 @@ import com.github.pedrovgs.roma.storage.{StatsStorage, TweetsStorage}
 import org.apache.spark.mllib.classification.SVMModel
 import org.apache.spark.rdd.RDD
 import org.apache.spark.storage.StorageLevel
-import org.apache.spark.streaming.scheduler.{StreamingListener, StreamingListenerReceiverError, StreamingListenerReceiverStopped}
+import org.apache.spark.streaming.scheduler.{
+  StreamingListener,
+  StreamingListenerReceiverError,
+  StreamingListenerReceiverStopped
+}
 import org.apache.spark.streaming.twitter.TwitterUtils
 import twitter4j.Status
 import twitter4j.auth.{Authorization, OAuthAuthorization}
