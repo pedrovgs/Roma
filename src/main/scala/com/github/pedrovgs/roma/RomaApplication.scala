@@ -140,6 +140,7 @@ object RomaApplication extends SparkApp with Resources {
           else Sentiment.Negative
         ClassifiedTweet(content, sentiment.toString, classScore)
       }
+      .cache()
   }
 
   private def saveTweets(classifiedTweets: RDD[ClassifiedTweet]): Unit = {
@@ -173,23 +174,10 @@ object RomaApplication extends SparkApp with Resources {
 
   private def calculateClassificationStats(classifiedTweets: RDD[ClassifiedTweet]) = {
     val numberOfTweets = classifiedTweets.count()
-    val positiveTweets = sparkContext.longAccumulator
-    val negativeTweets = sparkContext.longAccumulator
-    val neutralTweets  = sparkContext.longAccumulator
-    classifiedTweets.foreach { tweet =>
-      if (tweet.sentiment == Sentiment.Positive.toString) {
-        positiveTweets.add(1)
-      } else if (tweet.sentiment == Sentiment.Negative.toString) {
-        negativeTweets.add(1)
-      } else {
-        neutralTweets.add(1)
-      }
-    }
-    val stats = ClassificationStats(numberOfTweets, positiveTweets.value, negativeTweets.value, neutralTweets.value)
-    positiveTweets.reset()
-    negativeTweets.reset()
-    neutralTweets.reset()
-    stats
+    val positiveTweets = classifiedTweets.filter(_.sentiment == Sentiment.Positive.toString).count()
+    val negativeTweets = classifiedTweets.filter(_.sentiment == Sentiment.Negative.toString).count()
+    val neutralTweets  = numberOfTweets - positiveTweets - negativeTweets
+    ClassificationStats(numberOfTweets, positiveTweets, negativeTweets, neutralTweets)
   }
 
   private def clearData(): Unit = {
