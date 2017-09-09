@@ -83,26 +83,28 @@ If you just need to assemble the ``jar`` you have to sent to the Apache Spark cl
 This project needs some private Twitter OAuth configuration you can set creating a new file named ``application.conf`` into the ``/src/main/resources/`` folder. Here you have an example:
 
 ```
-twitter4j {
-  oauth {
-    consumerKey = YOUR_CONSUMER_KEY
-    consumerSecret = YOUR_CONSUMER_SECRET
-    accessToken = YOUR_ACCESS_TOKEN
-    accessTokenSecret = YOUR_ACCESS_TOKEN_SECRET
+roma {
+  twitter4j {
+    oauth {
+      consumerKey = YOUR_CONSUMER_KEY
+      consumerSecret = YOUR_CONSUMER_SECRET
+      accessToken = YOUR_ACCESS_TOKEN
+      accessTokenSecret = YOUR_ACCESS_TOKEN_SECRET
+    }
   }
-}
+  
+  firebase {
+    databaseUrl = YOUR_FIREBASE_DATABASE_URL
+  } 
 
-firebase {
-  databaseUrl = YOUR_FIREBASE_DATABASE_URL
-}
-
-machineLearning {
-  numberOfIterations = 100
-  outputFolder = "./outputs/"
-  modelFileName = "svmModel"
-  positiveThreshold = 0.3
-  negativeThreshold = -0.2
-}
+  machineLearning {
+    numberOfIterations = 100
+    outputFolder = "./outputs/"
+    modelFileName = "svmModel"
+    positiveThreshold = 0.3
+    negativeThreshold = -0.2
+  }
+}  
 ```
 
 If you want to review the classification results from a simple web-site you'll have to modify the file ``web/js/main.sj`` and initialize Firebase configuration using your own credentials. Here you have an example:
