@@ -1,0 +1,93 @@
+{
+  "classifiedTweets" : {
+    "-Kt_JKd76vILx36QbehX" : {
+      "content" : "my room is as cold as a witch's tit",
+      "score" : -0.367132090429207,
+      "sentiment" : "Negative"
+    },
+    "-Kt_JKeixL6K3tTI8D-q" : {
+      "content" : "@Omg_J_E_S_S Yeah agreed they r busier. Sunday afternoon is the best. Nothing but leaners out.",
+      "score" : 0.4949755381048805,
+      "sentiment" : "Positive"
+    },
+    "-Kt_JKejg5QYTcMUL-a1" : {
+      "content" : "Probably didn't need to the amount of money he would have got selling that factory https://t.co/9AHUrfIbA6",
+      "score" : -0.8863984166001527,
+      "sentiment" : "Negative"
+    },
+    "-Kt_JKgJOIWbjMeMkHD9" : {
+      "content" : "@gmanews Those who have been tortured and killed during the marcos regine must be turning and tossing in their graves #MarcosNOTaHero",
+      "score" : -0.2499880208693155,
+      "sentiment" : "Negative"
+    },
+    "-Kt_JKgOVWUm_RU-qBqs" : {
+      "content" : "If my snapchat memories were to erase, I think I'd cry for days 😅",
+      "score" : -0.23708889361678,
+      "sentiment" : "Negative"
+    },
+    "-Kt_JKhhXRKgESej5YWK" : {
+      "content" : "spoken like someone who's never actually seen or been inside a section 8 housing https://t.co/2ivY8jsOSo",
+      "score" : -0.47307947809596707,
+      "sentiment" : "Negative"
+    },
+    "-Kt_JKhhXRKgESej5YWL" : {
+      "content" : "@Carol_xox Illegal thankfully in a lot of places, it's a horrible and pointless surgery",
+      "score" : -0.27434151462133344,
+      "sentiment" : "Negative"
+    },
+    "-Kt_JKiOYMGBGOsSAjQQ" : {
+      "content" : "\"Studying in Madrid can be a great experience - good universities and great city to enjoy! https://t.co/BFn1d02ai1",
+      "score" : 1.8390715785869869,
+      "sentiment" : "Positive"
+    },
+    "-Kt_JKi_FnvvjBwHSMrt" : {
+      "content" : "@gmanews Those who have been tortured and killed during the marcos regine must be turning and tossing in their graves #MarcosNOTaHero",
+      "score" : -0.4976466856750741,
+      "sentiment" : "Negative"
+    }
+  },
+  "classifiedTweetsStats" : {
+    "numberOfClassifiedTweets" : 75066,
+    "numberOfNegativeTweets" : 14513,
+    "numberOfNeutralTweets" : 42171,
+    "numberOfPositiveTweets" : 18382
+  },
+  "classifiedTweetsTimelineStats" : {
+    "418032" : {
+      "hour" : 418032,
+      "stats" : {
+        "numberOfClassifiedTweets" : 17824,
+        "numberOfNegativeTweets" : 3383,
+        "numberOfNeutralTweets" : 10105,
+        "numberOfPositiveTweets" : 4336
+      }
+    },
+    "418033" : {
+      "hour" : 418033,
+      "stats" : {
+        "numberOfClassifiedTweets" : 20156,
+        "numberOfNegativeTweets" : 3868,
+        "numberOfNeutralTweets" : 11387,
+        "numberOfPositiveTweets" : 4901
+      }
+    },
+    "418034" : {
+      "hour" : 418034,
+      "stats" : {
+        "numberOfClassifiedTweets" : 19643,
+        "numberOfNegativeTweets" : 3836,
+        "numberOfNeutralTweets" : 11047,
+        "numberOfPositiveTweets" : 4760
+      }
+    },
+    "418035" : {
+      "hour" : 418035,
+      "stats" : {
+        "numberOfClassifiedTweets" : 17406,
+        "numberOfNegativeTweets" : 3419,
+        "numberOfNeutralTweets" : 9605,
+        "numberOfPositiveTweets" : 4382
+      }
+    }
+  }
+}
