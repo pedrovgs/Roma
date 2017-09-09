@@ -4,7 +4,7 @@ Machine learning and big data project built on top of [Apache Spark](https://spa
 
 You can check the results of the real-time sentiment analysis from [https://pedrovgs.github.io/Roma/](https://pedrovgs.github.io/Roma/)
 
-![PUT A SCREENSHOT HERE PLEASE]() 
+![web](./art/web.png)
 
 ## How does it work?
 
