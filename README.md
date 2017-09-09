@@ -1,10 +1,14 @@
-# Roma [![Build Status](https://travis-ci.org/pedrovgs/Roma.svg?branch=master)](https://travis-ci.org/pedrovgs/Roma)
+# Roma [![Build Status](https://travis-ci.org/pedrovgs/Roma.svg?branch=master)](https://travis-ci.org/pedrovgs/Roma) [https://pedrovgs.github.io/Roma](https://pedrovgs.github.io/Roma)
 
-Machine learning and big data project built on top of [Apache Spark](https://spark.apache.org/) and written in [Scala](https://www.scala-lang.org/). Roma performs a real time sentiment analysis using Twitter's streaming API as data source. The classification result is persisted in Firebase.
+Machine learning and big data project built on top of [Apache Spark](https://spark.apache.org/) and written in [Scala](https://www.scala-lang.org/). Roma performs a **real-time sentiment analysis using []Twitter's streaming API](https://dev.twitter.com/streaming/overview) as data source and [Support Vector Machine]((https://en.wikipedia.org/wiki/Support_vector_machine)) as machine learning algorithm.**
+
+You can check the results of the real-time sentiment analysis from [https://pedrovgs.github.io/Roma/](https://pedrovgs.github.io/Roma/)
+
+![web](./art/web.png)
 
 ## How does it work?
 
-**This project uses a machine learning algorithm named [Support Vector Machine](https://en.wikipedia.org/wiki/Support_vector_machine) combined with [Twitter Streaming API](https://dev.twitter.com/streaming/overview).** Using Twitter as input data and an already trained SVM model we can classify the incoming tweets into two different classess: ``positive`` and ``negative``. Content classified where the accuracy is not good enough, where we can't guarantee if the content is positive or negative, will not be classified. The classification result is persisted into [Firebase](https://firebase.google.com/).
+Using Twitter as input data and an already trained SVM model we can classify the incoming tweets into two different classess: ``positive`` and ``negative``. Content classified where the accuracy is not good enough, where we can't guarantee if the content is positive or negative, will not be classified. The classification result is persisted into [Firebase](https://firebase.google.com/).
 
 We can split the project project components into two main entities: 
 
@@ -30,7 +34,7 @@ The steps followed to classify tweets are:
 
 **As SVM is a binary classification model and we need to discard some tweets and we can't always guarantee if the content is positive or negative we've applied a threshold to the prediction score generated as the result of the Support Vector Machine prediction.**
 
-***The classification results and stats are saved into Firebase. We decided to use this storage platform because it's free and we don't have any sponsor for this project. Firebase does not support aggregation and we have to implement it manually. Even when the performance result is not the best, this implementation is the best we could get for free. In the future, if we have any sponsor for the systems infrastructure we will move the implementation to any other database.***
+***The classification results and stats are saved into Firebase and the classification is performed into an AWS Cluster. We decided to use this storage platform and AWS because these platforms are free for some time and we don't have any sponsor for this project. Firebase does not support aggregation and we have to implement it manually. Even when the performance result is not the best, this implementation is the best we could get for free. In the future, if we have any sponsor for the systems infrastructure we will move the implementation to any other database.***
 
 ### Training
 
@@ -72,7 +76,7 @@ To build and test this project you can execute ``sbt test``. You can also use ``
 ~ test-only *AnySpec
 ``` 
 
-If you just need to assemble the ``jar`` you have to sent to the Apache Spark cluster you can simply execute ``sbt assembly``. If you need to continously build the binary you can execute ``sbt`` to enter into the interactive mode and then execute ```~ assembly```.
+If you just need to assemble the ``jar`` you have to sent to the Apache Spark cluster you can simply execute ``sbt assembly``. If you need to repeatedly build the binary you can execute ``sbt`` to enter into the interactive mode and then execute ```~ assembly```.
 
 ## Configuration
 
@@ -140,15 +144,19 @@ sbt assembly
 ./submitToLocalSpark.sh
 ``
 
-You can submit this application to a dockerized Spark cluster using these commands:
+If at some point you need to run this on a cluster my recommendation is to use [Amazon EMR](https://aws.amazon.com/es/emr/). To get the job running on a cluster you have to follow these steps:
 
-```
-sbt assembly
-cd docker
-docker-compse up -d
-cd ..
-./submitToDockerizedSpark.sh
-```
+* Configure the ``application.conf`` and ``firebaseCredentials.json`` file as described below.
+* Create an AWS account.
+* Build the project using ``sbt assembly``.
+* Upload to an amazon s3 bucket the binary you'll find in ``target/scala-2.11/roma.jar``.
+* Upload to an amazon s3 bucket the ``svmModel`` folder found inside the resources directory.
+* Create a cluster using ``Spark`` as application.
+* Add a step to the cluster using the following configuration:
+
+![addStep](./art/clusterAddStep.png)
+
+Once the step starts executing the Spark application you'll see how the web site is updated in real time using the classification stats and the classified tweets computed in the cluster.
 
 Contributors
 ------------

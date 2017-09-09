@@ -6,6 +6,12 @@ import com.github.pedrovgs.roma.machinelearning.{FeaturesExtractor, TweetsClassi
 import com.github.pedrovgs.roma.storage.{StatsStorage, TweetsStorage}
 import org.apache.spark.mllib.classification.SVMModel
 import org.apache.spark.rdd.RDD
+import org.apache.spark.storage.StorageLevel
+import org.apache.spark.streaming.scheduler.{
+  StreamingListener,
+  StreamingListenerReceiverError,
+  StreamingListenerReceiverStopped
+}
 import org.apache.spark.streaming.twitter.TwitterUtils
 import twitter4j.Status
 import twitter4j.auth.{Authorization, OAuthAuthorization}
@@ -86,10 +92,10 @@ object RomaApplication extends SparkApp with Resources {
     }
   }
 
-  private def startStreaming(authorization: Authorization, machineLearningConfig: MachineLearningConfig) = {
+  private def startStreaming(authorization: Authorization, machineLearningConfig: MachineLearningConfig): Unit = {
     print("Let's start reading tweets!")
     separator()
-    val modelPath = getFilePath("/" + machineLearningConfig.modelFileName)
+    val modelPath = getModelPath(machineLearningConfig)
     val svmModel  = SVMModel.load(sparkContext, modelPath)
     twitterStream(authorization)
       .filter(_.getLang == "en")
@@ -106,6 +112,15 @@ object RomaApplication extends SparkApp with Resources {
     streamingContext.start()
     streamingContext.awaitTermination()
     print("Application finished")
+  }
+
+  private def getModelPath(machineLearningConfig: MachineLearningConfig) = {
+    val modelPath = getFilePath("/" + machineLearningConfig.modelFileName)
+    if (modelPath.isEmpty && args.length > 0) {
+      args(0)
+    } else {
+      modelPath
+    }
   }
 
   private def classifyTweets(status: RDD[Status],
@@ -131,9 +146,11 @@ object RomaApplication extends SparkApp with Resources {
           else Sentiment.Negative
         ClassifiedTweet(content, sentiment.toString, classScore)
       }
+      .persist(StorageLevel.MEMORY_ONLY)
   }
 
   private def saveTweets(classifiedTweets: RDD[ClassifiedTweet]): Unit = {
+    TweetsStorage.clear()
     classifiedTweets.foreachPartition { classifiedTweetsPerPartition =>
       TweetsStorage
         .saveTweets(classifiedTweetsPerPartition.toSeq)
@@ -163,22 +180,13 @@ object RomaApplication extends SparkApp with Resources {
 
   private def calculateClassificationStats(classifiedTweets: RDD[ClassifiedTweet]) = {
     val numberOfTweets = classifiedTweets.count()
-    val positiveTweets = sparkContext.longAccumulator
-    val negativeTweets = sparkContext.longAccumulator
-    val neutralTweets  = sparkContext.longAccumulator
-    classifiedTweets.foreach { tweet =>
-      if (tweet.sentiment == Sentiment.Positive.toString) {
-        positiveTweets.add(1)
-      } else if (tweet.sentiment == Sentiment.Negative.toString) {
-        negativeTweets.add(1)
-      } else {
-        neutralTweets.add(1)
-      }
-    }
-    ClassificationStats(numberOfTweets, positiveTweets.value, negativeTweets.value, neutralTweets.value)
+    val positiveTweets = classifiedTweets.filter(_.sentiment == Sentiment.Positive.toString).count()
+    val negativeTweets = classifiedTweets.filter(_.sentiment == Sentiment.Negative.toString).count()
+    val neutralTweets  = numberOfTweets - positiveTweets - negativeTweets
+    ClassificationStats(numberOfTweets, positiveTweets, negativeTweets, neutralTweets)
   }
 
-  private def clearData() = {
+  private def clearData(): Unit = {
     TweetsStorage.clear()
     StatsStorage.clear()
   }

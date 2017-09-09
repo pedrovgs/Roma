@@ -212,7 +212,9 @@ function setUpTweetsTimelineChart(database) {
         var snapshotDate = new Date(snapshot.hour * oneHourInMillis);
         var snapshotStartHour = snapshotDate.getHours();
         var nextHour = (snapshotStartHour + 1) % 24;
-        return snapshotStartHour + ":00" + " to " + nextHour + ":00";
+        var formattedDate = snapshotDate.toLocaleDateString();
+        var hoursRange = snapshotStartHour + ':00' + ' to ' + nextHour + ':00';
+        return formattedDate + ' - ' + hoursRange;
     }
 }
 
@@ -229,3 +231,4 @@ function setUpTweetsTable(database) {
         }
     });
 }
+
