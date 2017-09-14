@@ -16,8 +16,8 @@ libraryDependencies ++= Seq(
   "org.apache.bahir" %% "spark-streaming-twitter" % Versions.sparkStreamingTwitter,
   "com.typesafe" % "config" % Versions.config,
   "com.google.firebase" % "firebase-server-sdk" % Versions.firebase,
-  "com.vdurmont" % "emoji-java" % Versions.emojiJava
-
+  "com.vdurmont" % "emoji-java" % Versions.emojiJava,
+  "com.danielasfregola" %% "twitter4s" % Versions.twitter4s
 )
 
 libraryDependencies ++= Seq(
