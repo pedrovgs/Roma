@@ -1,9 +1,8 @@
 package com.github.pedrovgs.roma
 
-import com.danielasfregola.twitter4s.TwitterRestClient
-import com.danielasfregola.twitter4s.entities.{AccessToken, ConsumerToken, Tweet}
 import com.github.pedrovgs.roma.Console._
 import com.github.pedrovgs.roma.config.{ConfigLoader, FirebaseConfig, MachineLearningConfig, TwitterConfig}
+
 import com.github.pedrovgs.roma.machinelearning.{FeaturesExtractor, TweetsClassifier}
 import com.github.pedrovgs.roma.storage.{StatsStorage, TweetsStorage}
 import org.apache.spark.mllib.classification.SVMModel
@@ -97,32 +96,29 @@ object RomaApplication extends SparkApp with Resources {
     separator()
     val modelPath = getModelPath(mlConfig)
     val svmModel = SVMModel.load(sparkContext, modelPath)
-
-    val cb = new ConfigurationBuilder().setDebugEnabled(true)
-      .setOAuthConsumerKey(twitterConfig.consumerKey)
-      .setOAuthConsumerSecret(twitterConfig.consumerSecret)
-      .setOAuthAccessToken(twitterConfig.accessToken)
-      .setOAuthAccessTokenSecret(twitterConfig.accessTokenSecret)
-    val twitter = new TwitterFactory(cb.build()).getInstance()
-    var page = 1
-    var continue = true
-    val listStatuses = scala.collection.mutable.ArrayBuffer[Status]()
-    while(continue) {
-      val statuses = twitter.timelines().getUserTimeline(25073877, new Paging(page, 200))
-      for (i <- 0 until statuses.size()) {
-        listStatuses.append(statuses.get(i))
+    import sqlContext.implicits._
+    //source,text,created_at,retweet_count,favorite_count,is_retweet,id_str
+    val tweets = sqlContext.read
+      .option("header", "true")
+      .option("inferSchema", "true")
+      .csv(getFilePath("/trump.csv"))
+      .filter { row =>
+        row.getAs[String]("is_retweet") == "false"
       }
-      continue = !statuses.isEmpty
-      page += 1
-    }
-    val rdd = sparkContext.parallelize(listStatuses)
-    val classifiedTweets: RDD[ClassifiedTweet] = classifyTweets(rdd, svmModel, mlConfig)
+      .map(_.getAs[String]("text")).rdd
+    print("TWEETS OBTAINED FROM THE FILE")
+    val classifiedTweets: RDD[ClassifiedTweet] = classifyTweets2(tweets, svmModel, mlConfig)
     val tweetsStats: ClassificationStats = calculateClassificationStats(classifiedTweets)
     separator()
     print("Classified tweets: " + tweetsStats.numberOfClassifiedTweets)
     print("Positive tweets: " + tweetsStats.numberOfPositiveTweets)
     print("Negative tweets: " + tweetsStats.numberOfNegativeTweets)
     print("Neutral tweets: " + tweetsStats.numberOfNeutralTweets)
+
+    separator()
+    classifiedTweets.sortBy(_.score).take(10).foreach(println)
+    smallSeparator()
+    classifiedTweets.sortBy(_.score,ascending = false).take(10).foreach(println)
     separator()
 
   }
@@ -136,16 +132,12 @@ object RomaApplication extends SparkApp with Resources {
     }
   }
 
-  private def classifyTweets2(status: RDD[Tweet],
+  private def classifyTweets2(status: RDD[String],
                               svmModel: SVMModel,
                               machineLearningConfig: MachineLearningConfig): RDD[ClassifiedTweet] = {
     import sqlContext.implicits._
     print("Let's analyze a bunch of tweets!")
-    val tweets = status
-      .map { status =>
-        status.text
-      }
-      .toDF(TweetColumns.tweetContentColumnName)
+    val tweets = status.toDF(TweetColumns.tweetContentColumnName)
     val featurizedTweets = FeaturesExtractor.extract(tweets)
     val classifiedTweets = TweetsClassifier.classify(sqlContext, svmModel, featurizedTweets)
     classifiedTweets.rdd
