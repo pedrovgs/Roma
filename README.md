@@ -165,7 +165,7 @@ Once the step starts executing the Spark application you'll see how the web site
 Contributors
 ------------
 
-* [Mª Asunción Jiménez Cordero](https://www.researchgate.net/profile/Asuncion_Jimenez-Cordero) - asuncionjc@us.es - PhD Student at Universidad de Sevilla. Thanks for all your contributions to this project and support during the development. Your machine learning support and knowledge was the key to success in this project.
+* [Mª Asunción Jiménez Cordero](https://github.com/asuncionjc) - asuncionjc@us.es - PhD Student at Universidad de Sevilla. Thanks for all your contributions to this project and support during the development. Your machine learning support and knowledge was the key to success in this project.
 * [Pedro Vicente Gómez Sánchez](https://github.com/pedrovgs) - Core contributor.
 
 References
