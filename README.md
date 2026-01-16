@@ -1,4 +1,4 @@
-# Roma [![Build Status](https://travis-ci.org/pedrovgs/Roma.svg?branch=master)](https://travis-ci.org/pedrovgs/Roma) [https://pedrovgs.github.io/Roma](https://pedrovgs.github.io/Roma)
+# Roma [https://pedrovgs.github.io/Roma](https://pedrovgs.github.io/Roma)
 
 Machine learning and big data project built on top of [Apache Spark](https://spark.apache.org/) and written in [Scala](https://www.scala-lang.org/). Roma performs a **real-time sentiment analysis using [Twitter's streaming API](https://dev.twitter.com/streaming/overview) as data source and [Support Vector Machine]((https://en.wikipedia.org/wiki/Support_vector_machine)) as machine learning algorithm.**
 
